@@ -9,37 +9,36 @@ local VerticalPrediction = 0.135
 local XPrediction = 1
 local YPrediction = 1
 
-    function FindNearestEnemy()
-        local ClosestDistance, ClosestPlayer = math.huge, nil;
-        for _, Player in next, game:GetService("Players"):GetPlayers() do
-            if Player ~= LocalPlayer then
-                local Character = Player.Character
-                if Character and Character.Humanoid.Health > 1 then 
-                    local Position, IsVisibleOnViewPort = game:GetService("Workspace").CurrentCamera:WorldToViewportPoint(Character.HumanoidRootPart
-                                                                                                 .Position)
-                    if IsVisibleOnViewPort then
-                        local Distance = (Vector2.new(Mouse.X, Mouse.Y) - Vector2.new(Position.X, Position.Y)).Magnitude
-                        if Distance < ClosestDistance then
-                            ClosestPlayer = Player.Character.HumanoidRootPart
-                            ClosestDistance = Distance
-                        end
+function FindNearestEnemy()
+    local ClosestDistance, ClosestPlayer = math.huge, nil;
+    for _, Player in next, game:GetService("Players"):GetPlayers() do
+        if Player ~= LocalPlayer then
+            local Character = Player.Character
+            if Character and Character:FindFirstChild("Head") and Character:FindFirstChild("Humanoid") and Character.Humanoid.Health > 1 then 
+                local Position, IsVisibleOnViewPort = game:GetService("Workspace").CurrentCamera:WorldToViewportPoint(Character.Head.Position)
+                if IsVisibleOnViewPort then
+                    local Distance = (Vector2.new(Mouse.X, Mouse.Y) - Vector2.new(Position.X, Position.Y)).Magnitude
+                    if Distance < ClosestDistance then
+                        ClosestPlayer = Character.Head
+                        ClosestDistance = Distance
                     end
                 end
             end
         end
-        return ClosestPlayer, ClosestDistance
-     end
+    end
+    return ClosestPlayer, ClosestDistance
+end
 
-     local enemy = nil
--- Function to aim the camera at the nearest enemy's HumanoidRootPart
+local enemy = nil
+
+-- Function to aim the camera at the nearest enemy's Head
 RunService.Heartbeat:Connect(function()
     if CamlockState == true then
-    if enemy then
-        local camera = workspace.CurrentCamera
-        camera.CFrame = CFrame.new(camera.CFrame.p, enemy.Position + enemy.Velocity * Prediction)
-
+        if enemy then
+            local camera = workspace.CurrentCamera
+            camera.CFrame = CFrame.new(camera.CFrame.p, enemy.Position + enemy.Velocity * Prediction)
+        end
     end
-end
 end)
 
 local gui = Instance.new("ScreenGui")
@@ -57,7 +56,8 @@ TextButton.Font = Enum.Font.Code
 TextButton.Size = UDim2.new(0.2, 0, 0.2, 0)
 TextButton.Position = UDim2.new(0, 0, 0.5, 0)
 local state = true
-TextButton.MouseButton1Click:Connect (function()
+
+TextButton.MouseButton1Click:Connect(function()
     state = not state
     if not state then
         TextButton.Text = "Al0n3 Lock ON"
@@ -69,6 +69,7 @@ TextButton.MouseButton1Click:Connect (function()
         enemy = nil
     end
 end)
+
 TextButton.Parent = gui
 TextButton.Draggable = true
 
