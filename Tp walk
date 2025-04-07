@@ -44,6 +44,7 @@ TextButton.MouseButton1Click:Connect(function()
 end)
 
 -- Function to move the character with CFrame based on the speed
+local tpwalking = true
 local function moveCharacter()
     while true do
         wait(0.03)  -- Update interval for movement
