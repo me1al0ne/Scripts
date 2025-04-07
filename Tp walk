@@ -11,7 +11,7 @@ gui.Parent = game:GetService("CoreGui")
 
 -- Custom button creation
 local TextButton = Instance.new("TextButton")
-TextButton.Text = "Al0n3 Lock OFF"
+TextButton.Text = "Cframe"
 TextButton.TextSize = 18  -- Smaller text size
 TextButton.TextColor3 = Color3.new(1, 1, 1)  -- White text
 TextButton.BackgroundColor3 = Color3.new(0, 0, 0)  -- Black background
@@ -61,10 +61,10 @@ TextButton.MouseButton1Click:Connect(function()
     -- Only toggle if not already toggling to avoid race conditions
     if tpwalking then
         stopTPWalking()
-        TextButton.Text = "Al0n3 Lock OFF"  -- Update text when turned off
+        TextButton.Text = "Cframe ."  -- Update text when turned off
     else
         startTPWalking()
-        TextButton.Text = "Al0n3 Lock ON"   -- Update text when turned on
+        TextButton.Text = "Cframe .."   -- Update text when turned on
     end
 end)
 
