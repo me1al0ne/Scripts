@@ -1,7 +1,8 @@
-local tpwalking = false  -- Initially, movement is off
-local speed = 50  -- Speed is set to 50
-local chr = game.Players.LocalPlayer.Character
-local hum = chr and chr:FindFirstChildWhichIsA("Humanoid")
+local tpwalking = false  -- Movement initially off
+local speed = 50  -- Speed set to 50
+local player = game.Players.LocalPlayer
+local chr = player.Character or player.CharacterAdded:Wait()
+local hum = chr:WaitForChild("Humanoid")
 
 -- Create the GUI
 local gui = Instance.new("ScreenGui")
@@ -10,8 +11,8 @@ gui.Parent = game:GetService("CoreGui")
 
 -- Create the toggle button
 local TextButton = Instance.new("TextButton")
-TextButton.Text = "Cframe OFF"
-TextButton.TextSize = 16
+TextButton.Text = "Movement OFF"
+TextButton.TextSize = 24
 TextButton.TextColor3 = Color3.new(1, 1, 1)
 TextButton.BackgroundColor3 = Color3.new(0, 0, 0)
 TextButton.BorderColor3 = Color3.new(1, 1, 1)
@@ -35,25 +36,29 @@ uiStroke.Parent = TextButton
 TextButton.MouseButton1Click:Connect(function()
     tpwalking = not tpwalking  -- Toggle the movement state
     if tpwalking then
-        TextButton.Text = "Cframe ON"  -- Update the button text
+        TextButton.Text = "Movement ON"  -- Update the button text
     else
-        TextButton.Text = "Cframe OFF"  -- Update the button text
+        TextButton.Text = "Movement OFF"  -- Update the button text
     end
 end)
 
--- Function to update character movement based on speed and direction
-while true do
-    wait(0.03)  -- Update interval for movement
+-- Function to move the character with CFrame based on the speed
+local function moveCharacter()
+    while true do
+        wait(0.03)  -- Update interval for movement
 
-    if tpwalking and chr and hum and hum.Parent then
-        -- Calculate movement
-        local delta = wait(0.03)  -- Adjust rate if needed
-
-        if hum.MoveDirection.Magnitude > 0 then
-            -- Update the character's CFrame based on the movement direction and speed
-            local moveDirection = hum.MoveDirection
-            local newCFrame = chr.HumanoidRootPart.CFrame + moveDirection * speed * delta
-            chr.HumanoidRootPart.CFrame = newCFrame
+        -- Only move if tpwalking is enabled and the character is valid
+        if tpwalking and chr and hum and hum.Parent then
+            -- Check if the character is moving
+            if hum.MoveDirection.Magnitude > 0 then
+                -- Get the movement direction and apply speed
+                local moveDirection = hum.MoveDirection
+                local newCFrame = chr.HumanoidRootPart.CFrame + moveDirection * speed * 0.03  -- Adjust with delta time
+                chr.HumanoidRootPart.CFrame = newCFrame
+            end
         end
     end
 end
+
+-- Start the movement loop
+coroutine.wrap(moveCharacter)()  -- Run the movement function in a separate coroutine
