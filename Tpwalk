@@ -1,0 +1,48 @@
+-- LocalScript inside the TextButton
+
+-- Reference to the TextButton and the player's character
+local button = script.Parent
+local player = game.Players.LocalPlayer
+
+-- The position where you want to teleport the player
+local teleportDestination = CFrame.new(0, 10, 0)  -- Example coordinates (0, 10, 0)
+
+-- The speed at which the player will teleport (higher = faster)
+local teleportSpeed = 50  -- Change this value to adjust speed (studs per second)
+
+-- Function to smoothly teleport the player to the destination
+local function teleportPlayer()
+    -- Make sure the player has a character and a humanoid root part
+    if player.Character and player.Character:FindFirstChild("HumanoidRootPart") then
+        local character = player.Character
+        local humanoidRootPart = character:WaitForChild("HumanoidRootPart")
+        
+        -- Get the starting position
+        local startPosition = humanoidRootPart.Position
+        local targetPosition = teleportDestination.Position
+
+        -- Calculate the direction to move in
+        local direction = (targetPosition - startPosition).unit
+        local distance = (targetPosition - startPosition).magnitude
+
+        -- Move the player towards the target position
+        local startTime = tick()
+        
+        -- Use a while loop to move the player gradually
+        while (humanoidRootPart.Position - targetPosition).magnitude > 1 do
+            local elapsedTime = tick() - startTime
+            -- Move the player based on speed and time elapsed
+            local movement = direction * teleportSpeed * elapsedTime
+            humanoidRootPart.CFrame = CFrame.new(startPosition + movement)
+            
+            -- Yield to prevent freezing the game and let it update each frame
+            wait(0.03)  -- This can be adjusted for smoother or faster transitions
+        end
+        
+        -- Ensure the final position is exactly the target
+        humanoidRootPart.CFrame = teleportDestination
+    end
+end
+
+-- Connect the function to the button's MouseButton1Click event
+button.MouseButton1Click:Connect(teleportPlayer)
