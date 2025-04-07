@@ -2,7 +2,8 @@
 
 -- Settings for ESP
 local ESPColor = Color3.fromRGB(255, 0, 0)  -- Red color for ESP box and name
-local BoxSize = Vector3.new(2, 5, 2)  -- The size of the box around the character
+local NameTextSize = 18  -- Text size for player names above their head
+local StudsOffset = Vector3.new(0, 3, 0)  -- Offset to position the name above the character
 
 -- Function to create an ESP for a player
 local function createESP(player)
@@ -19,46 +20,27 @@ local function createESP(player)
         billboard.Parent = hrp
         billboard.Adornee = hrp
         billboard.Size = UDim2.new(0, 100, 0, 50)
-        billboard.StudsOffset = Vector3.new(0, 3, 0)  -- Offset to position the name above the character
+        billboard.StudsOffset = StudsOffset  -- Offset to position the name above the character
         billboard.AlwaysOnTop = true  -- Ensure the name is always visible
+        billboard.BackgroundTransparency = 1  -- No background
+        billboard.ZIndexBehavior = Enum.ZIndexBehavior.Sibling  -- Ensure it's always rendered in front of other elements
 
+        -- Create a TextLabel to display the player's name
         local textLabel = Instance.new("TextLabel")
         textLabel.Parent = billboard
         textLabel.Text = player.Name
-        textLabel.TextColor3 = Color3.new(1, 1, 1)  -- White color
+        textLabel.TextColor3 = Color3.fromRGB(255, 255, 255)  -- White color
         textLabel.BackgroundTransparency = 1
-        textLabel.TextSize = 18
+        textLabel.TextSize = NameTextSize
         textLabel.TextStrokeTransparency = 0.8
+        textLabel.TextStrokeColor3 = ESPColor
 
-        -- Create a part to form the outline box around the character (the box is invisible, just for positioning)
-        local box = Instance.new("Part")
-        box.Size = BoxSize
-        box.CFrame = hrp.CFrame
-        box.Anchored = true
-        box.CanCollide = false
-        box.Transparency = 1  -- Make it fully invisible, just for positioning
-        box.Parent = game.Workspace
-        box.Material = Enum.Material.SmoothPlastic
-        box.CastShadow = false
+        -- Create an optional additional effect, like a border or glow effect if needed
+        -- You can customize the border using additional UI elements (like UIStroke)
 
-        -- Update the box position every frame to follow the player
-        local function updateBoxPosition()
-            while player.Character and player.Character:FindFirstChild("HumanoidRootPart") do
-                -- Make the ESP box follow the player
-                box.CFrame = player.Character.HumanoidRootPart.CFrame
-                wait(0.1)  -- Update every 0.1 seconds
-            end
-            -- Clean up the box when the player leaves
-            box:Destroy()
-        end
-
-        -- Start updating the box position
-        spawn(updateBoxPosition)
-
-        -- Clean up ESP when player leaves
+        -- Clean up the ESP when the player leaves
         player.AncestryChanged:Connect(function(_, parent)
             if not parent then
-                box:Destroy()
                 billboard:Destroy()
             end
         end)
