@@ -1,0 +1,59 @@
+local tpwalking = false  -- Initially, movement is off
+local speed = 50  -- Speed is set to 50
+local chr = game.Players.LocalPlayer.Character
+local hum = chr and chr:FindFirstChildWhichIsA("Humanoid")
+
+-- Create the GUI
+local gui = Instance.new("ScreenGui")
+gui.Name = "patrickGui"
+gui.Parent = game:GetService("CoreGui")
+
+-- Create the toggle button
+local TextButton = Instance.new("TextButton")
+TextButton.Text = "Cframe OFF"
+TextButton.TextSize = 16
+TextButton.TextColor3 = Color3.new(1, 1, 1)
+TextButton.BackgroundColor3 = Color3.new(0, 0, 0)
+TextButton.BorderColor3 = Color3.new(1, 1, 1)
+TextButton.BorderSizePixel = 4
+TextButton.Font = Enum.Font.Code
+TextButton.Size = UDim2.new(0.2, 0, 0.1, 0)
+TextButton.Position = UDim2.new(0, 10, 0.5, 0)
+TextButton.Draggable = true
+TextButton.Parent = gui
+
+local cornerUI = Instance.new("UICorner")
+cornerUI.CornerRadius = UDim.new(0, 5)
+cornerUI.Parent = TextButton
+
+local uiStroke = Instance.new("UIStroke")
+uiStroke.Color = Color3.new(0, 0, 0)
+uiStroke.Thickness = 2
+uiStroke.Parent = TextButton
+
+-- Toggle logic for movement
+TextButton.MouseButton1Click:Connect(function()
+    tpwalking = not tpwalking  -- Toggle the movement state
+    if tpwalking then
+        TextButton.Text = "Cframe ON"  -- Update the button text
+    else
+        TextButton.Text = "Cframe OFF"  -- Update the button text
+    end
+end)
+
+-- Function to update character movement based on speed and direction
+while true do
+    wait(0.03)  -- Update interval for movement
+
+    if tpwalking and chr and hum and hum.Parent then
+        -- Calculate movement
+        local delta = wait(0.03)  -- Adjust rate if needed
+
+        if hum.MoveDirection.Magnitude > 0 then
+            -- Update the character's CFrame based on the movement direction and speed
+            local moveDirection = hum.MoveDirection
+            local newCFrame = chr.HumanoidRootPart.CFrame + moveDirection * speed * delta
+            chr.HumanoidRootPart.CFrame = newCFrame
+        end
+    end
+end
