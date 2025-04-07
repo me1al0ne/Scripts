@@ -6,7 +6,7 @@ local BoxSize = Vector3.new(2, 5, 2)  -- The size of the box around the characte
 
 -- Function to create an ESP for a player
 local function createESP(player)
-    -- Make sure the player is not the local player (so we don’t ESP ourselves)
+    -- Ensure we're not applying ESP to the local player (our own character)
     if player == game.Players.LocalPlayer then return end
 
     -- Check if the player has a character and if it has a HumanoidRootPart
@@ -23,6 +23,10 @@ local function createESP(player)
         box.Transparency = 0.5
         box.BrickColor = BrickColor.new(ESPColor)
         box.Parent = game.Workspace
+
+        -- Set the box to be in front of the camera, always rendering
+        box.Material = Enum.Material.SmoothPlastic
+        box.CastShadow = false
 
         -- Attach the box to the player's HumanoidRootPart so it follows them
         local weld = Instance.new("WeldConstraint")
@@ -44,8 +48,6 @@ local function createESP(player)
         textLabel.BackgroundTransparency = 1
         textLabel.TextSize = 18
         textLabel.TextStrokeTransparency = 0.8
-
-        -- Optionally, add more customization here (like adding team color or health)
 
         -- Clean up ESP when player leaves
         player.AncestryChanged:Connect(function(_, parent)
