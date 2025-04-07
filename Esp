@@ -14,32 +14,13 @@ local function createESP(player)
         local character = player.Character
         local hrp = character.HumanoidRootPart
 
-        -- Create a part to form the outline box around the character
-        local box = Instance.new("Part")
-        box.Size = BoxSize
-        box.CFrame = hrp.CFrame
-        box.Anchored = true
-        box.CanCollide = false
-        box.Transparency = 0.5
-        box.BrickColor = BrickColor.new(ESPColor)
-        box.Parent = game.Workspace
-
-        -- Set the box to be in front of the camera, always rendering
-        box.Material = Enum.Material.SmoothPlastic
-        box.CastShadow = false
-
-        -- Attach the box to the player's HumanoidRootPart so it follows them
-        local weld = Instance.new("WeldConstraint")
-        weld.Parent = box
-        weld.Part0 = box
-        weld.Part1 = hrp
-
         -- Create a BillboardGui to show the player’s name above their head
         local billboard = Instance.new("BillboardGui")
         billboard.Parent = hrp
         billboard.Adornee = hrp
         billboard.Size = UDim2.new(0, 100, 0, 50)
-        billboard.StudsOffset = Vector3.new(0, 3, 0)
+        billboard.StudsOffset = Vector3.new(0, 3, 0)  -- Offset to position the name above the character
+        billboard.AlwaysOnTop = true  -- Ensure the name is always visible
 
         local textLabel = Instance.new("TextLabel")
         textLabel.Parent = billboard
@@ -48,6 +29,31 @@ local function createESP(player)
         textLabel.BackgroundTransparency = 1
         textLabel.TextSize = 18
         textLabel.TextStrokeTransparency = 0.8
+
+        -- Create a part to form the outline box around the character (the box is invisible, just for positioning)
+        local box = Instance.new("Part")
+        box.Size = BoxSize
+        box.CFrame = hrp.CFrame
+        box.Anchored = true
+        box.CanCollide = false
+        box.Transparency = 1  -- Make it fully invisible, just for positioning
+        box.Parent = game.Workspace
+        box.Material = Enum.Material.SmoothPlastic
+        box.CastShadow = false
+
+        -- Update the box position every frame to follow the player
+        local function updateBoxPosition()
+            while player.Character and player.Character:FindFirstChild("HumanoidRootPart") do
+                -- Make the ESP box follow the player
+                box.CFrame = player.Character.HumanoidRootPart.CFrame
+                wait(0.1)  -- Update every 0.1 seconds
+            end
+            -- Clean up the box when the player leaves
+            box:Destroy()
+        end
+
+        -- Start updating the box position
+        spawn(updateBoxPosition)
 
         -- Clean up ESP when player leaves
         player.AncestryChanged:Connect(function(_, parent)
