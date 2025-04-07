@@ -1,0 +1,70 @@
+local Players = game:GetService("Players")
+local RunService = game:GetService("RunService")
+local UserInputService = game:GetService("UserInputService")
+local StarterGui = game:GetService("StarterGui")
+local LocalPlayer = Players.LocalPlayer
+local Camera = workspace.CurrentCamera
+
+local CamlockState = false
+local LockedTarget = nil
+local Prediction = 0 -- Adjust as needed
+
+-- Find closest player to center of screen
+function FindNearestToCenter()
+    local ClosestDistance = math.huge
+    local ClosestTarget = nil
+    local ViewportCenter = Vector2.new(Camera.ViewportSize.X / 2, Camera.ViewportSize.Y / 2)
+
+    for _, player in ipairs(Players:GetPlayers()) do
+        if player ~= LocalPlayer and player.Character and player.Character:FindFirstChild("Head") and player.Character:FindFirstChild("Humanoid") and player.Character.Humanoid.Health > 0 then
+            local Head = player.Character.Head
+            local ScreenPosition, onScreen = Camera:WorldToViewportPoint(Head.Position)
+            if onScreen then
+                local Distance = (ViewportCenter - Vector2.new(ScreenPosition.X, ScreenPosition.Y)).Magnitude
+                if Distance < ClosestDistance then
+                    ClosestDistance = Distance
+                    ClosestTarget = Head
+                end
+            end
+        end
+    end
+
+    return ClosestTarget
+end
+
+-- Aim camera
+RunService.RenderStepped:Connect(function()
+    if CamlockState and LockedTarget and LockedTarget.Parent and LockedTarget.Parent:FindFirstChild("Humanoid") and LockedTarget.Parent.Humanoid.Health > 0 then
+        local predictedPosition = LockedTarget.Position + (LockedTarget.Velocity * Prediction)
+        Camera.CFrame = CFrame.new(Camera.CFrame.Position, predictedPosition)
+    end
+end)
+
+-- Keybind to toggle camlock (Q)
+UserInputService.InputBegan:Connect(function(input, isTyping)
+    if isTyping then return end
+
+    if input.KeyCode == Enum.KeyCode.Q then
+        CamlockState = not CamlockState
+        if CamlockState then
+            LockedTarget = FindNearestToCenter()
+            if LockedTarget then
+                local playerLocked = Players:GetPlayerFromCharacter(LockedTarget.Parent)
+                if playerLocked then
+                    StarterGui:SetCore("SendNotification", {
+                        Title = "Al0n3 Lock";
+                        Text = "Locking onto " .. playerLocked.Name;
+                        Duration = 3;
+                    })
+                end
+            end
+        else
+            LockedTarget = nil
+            StarterGui:SetCore("SendNotification", {
+                Title = "Al0n3 Lock";
+                Text = "Camlock turned OFF";
+                Duration = 2;
+            })
+        end
+    end
+end)
