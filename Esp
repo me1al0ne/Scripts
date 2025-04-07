@@ -1,77 +1,123 @@
--- LocalScript
+--// Universal ESP Script
 
--- Settings for ESP
-local ESPColor = Color3.fromRGB(255, 0, 0)  -- Red color for ESP box and name
-local NameTextSize = 18  -- Text size for player names above their head
-local StudsOffset = Vector3.new(0, 3, 0)  -- Offset to position the name above the character
+local settings = {
+    enabled = true,
+    teamCheck = false,  -- No longer needed for universal ESP
+}
 
--- Function to create an ESP for a player
-local function createESP(player)
-    -- Ensure we're not applying ESP to the local player (our own character)
-    if player == game.Players.LocalPlayer then return end
+local Players = game:GetService("Players")
+local RunService = game:GetService("RunService")
+local wtf = {}
 
-    -- Check if the player has a character and if it has a HumanoidRootPart
-    if player.Character and player.Character:FindFirstChild("HumanoidRootPart") then
-        local character = player.Character
-        local hrp = character.HumanoidRootPart
+function esp(player)
+    if not settings.enabled then return end
+    -- Removed teamCheck condition, ESP will work for all players
+    if player == Players.LocalPlayer then return end  -- Don't show ESP for the local player
 
-        -- Create a BillboardGui to show the player’s name above their head
-        local billboard = Instance.new("BillboardGui")
-        billboard.Parent = hrp
-        billboard.Adornee = hrp
-        billboard.Size = UDim2.new(0, 100, 0, 50)
-        billboard.StudsOffset = StudsOffset  -- Offset to position the name above the character
-        billboard.AlwaysOnTop = true  -- Ensure the name is always visible
-        billboard.BackgroundTransparency = 1  -- No background
-        billboard.ZIndexBehavior = Enum.ZIndexBehavior.Sibling  -- Ensure it's always rendered in front of other elements
+    local character = player.Character or player.CharacterAdded:Wait()
+    local humanoidRootPart = character:WaitForChild("HumanoidRootPart")
 
-        -- Create a TextLabel to display the player's name
-        local textLabel = Instance.new("TextLabel")
-        textLabel.Parent = billboard
-        textLabel.Text = player.Name
-        textLabel.TextColor3 = Color3.fromRGB(255, 255, 255)  -- White color
-        textLabel.BackgroundTransparency = 1
-        textLabel.TextSize = NameTextSize
-        textLabel.TextStrokeTransparency = 0.8
-        textLabel.TextStrokeColor3 = ESPColor
+    -- Create drawing objects for the ESP
+    local Box = Drawing.new("Square")
+    Box.Color = Color3.new(1, 0, 0)  -- Red box color
+    Box.Thickness = 2
+    Box.Transparency = 1
+    Box.Filled = false
 
-        -- Create an optional additional effect, like a border or glow effect if needed
-        -- You can customize the border using additional UI elements (like UIStroke)
+    local tracer = Drawing.new("Line")
+    tracer.Color = Color3.new(1, 0, 0)  -- Red line color
+    tracer.Thickness = 1
+    tracer.Transparency = 1
 
-        -- Clean up the ESP when the player leaves
-        player.AncestryChanged:Connect(function(_, parent)
-            if not parent then
-                billboard:Destroy()
-            end
-        end)
-    end
-end
+    local name = Drawing.new("Text")
+    name.Text = player.Name
+    name.Color = Color3.new(1, 1, 1)  -- White text color
+    name.Size = 20
+    name.Center = true
+    name.Outline = true
+    name.Transparency = 1
 
--- Create ESP for all players in the game except the local player
-for _, player in pairs(game.Players:GetPlayers()) do
-    if player ~= game.Players.LocalPlayer then
-        createESP(player)
-    end
-end
+    wtf[player] = {box = Box, tracer = tracer, name = name}
 
--- Listen for new players and create ESP for them
-game.Players.PlayerAdded:Connect(function(player)
-    player.CharacterAdded:Connect(function()
-        if player ~= game.Players.LocalPlayer then
-            createESP(player)
+    local function loop()
+        if not player.Character or not player.Character:FindFirstChild("HumanoidRootPart") then
+            Box.Visible = false
+            tracer.Visible = false
+            name.Visible = false
+            return
         end
+
+        local hrpPosition, onScreen = workspace.CurrentCamera:WorldToViewportPoint(humanoidRootPart.Position)
+        if onScreen then
+            local top = workspace.CurrentCamera:WorldToViewportPoint(humanoidRootPart.Position + Vector3.new(0, 3, 0))
+            local bottom = workspace.CurrentCamera:WorldToViewportPoint(humanoidRootPart.Position - Vector3.new(0, 3, 0))
+            local size = Vector2.new(math.abs(top.X - bottom.X) * 1.5, math.abs(top.Y - bottom.Y) * 1.5)
+            Box.Size = size
+            Box.Position = Vector2.new(hrpPosition.X - size.X / 2, hrpPosition.Y - size.Y / 2)
+            Box.Visible = true
+
+            tracer.From = Vector2.new(workspace.CurrentCamera.ViewportSize.X / 2, workspace.CurrentCamera.ViewportSize.Y)
+            tracer.To = Vector2.new(hrpPosition.X, hrpPosition.Y)
+            tracer.Visible = true
+
+            name.Position = Vector2.new(hrpPosition.X, hrpPosition.Y - size.Y / 2 - 20)
+            name.Visible = true
+        else
+            Box.Visible = false
+            tracer.Visible = false
+            name.Visible = false
+        end
+    end
+
+    RunService.RenderStepped:Connect(loop)
+end
+
+function remove(player)
+    if wtf[player] then
+        wtf[player].box:Remove()
+        wtf[player].tracer:Remove()
+        wtf[player].name:Remove()
+        wtf[player] = nil
+    end
+end
+
+function add(player)
+    player.CharacterAdded:Connect(function(character)
+        esp(player)
     end)
-end)
+    player.CharacterRemoving:Connect(function(character)
+        remove(player)
+    end)
+    if player.Character then
+        esp(player)
+    end
+end
 
--- Optionally, listen for when players leave
-game.Players.PlayerRemoving:Connect(function(player)
-    -- Cleanup if player leaves
-    if player.Character and player.Character:FindFirstChild("HumanoidRootPart") then
-        local hrp = player.Character.HumanoidRootPart
-        for _, part in pairs(workspace:GetChildren()) do
-            if part:IsA("Part") and part.Parent == hrp.Parent then
-                part:Destroy()
+Players.PlayerAdded:Connect(add)
+
+-- Create ESP for all existing players when the script starts
+for _, player in pairs(Players:GetPlayers()) do
+    add(player)
+end
+
+function toggle(state)
+    settings.enabled = state
+    if not state then
+        -- Remove ESP for all players
+        for _, player in pairs(Players:GetPlayers()) do
+            remove(player)
+        end
+    else
+        -- Add ESP for all players
+        for _, player in pairs(Players:GetPlayers()) do
+            if player.Character then
+                esp(player)
             end
         end
     end
-end)
+end
+
+function this_is_stupid(state)
+    -- teamCheck function is no longer used, as the ESP is now universal
+    settings.teamCheck = state
+end
