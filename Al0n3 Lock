@@ -4,9 +4,10 @@ local LocalPlayer = Players.LocalPlayer
 local Camera = workspace.CurrentCamera
 
 local CamlockState = false
-local Prediction = 0 -- Adjust this for better accuracy based on game speed
+local LockedTarget = nil
+local Prediction = 0 -- You can tweak this value to suit the game's velocity
 
--- Function to get the closest player to the center of the screen
+-- Find closest player to center of screen ONCE
 function FindNearestToCenter()
     local ClosestDistance = math.huge
     local ClosestTarget = nil
@@ -29,14 +30,11 @@ function FindNearestToCenter()
     return ClosestTarget
 end
 
--- Aim camera towards the closest player's head every frame while enabled
+-- Lock camera to target's predicted position
 RunService.RenderStepped:Connect(function()
-    if CamlockState then
-        local Target = FindNearestToCenter()
-        if Target then
-            local PredictedPosition = Target.Position + (Target.Velocity * Prediction)
-            Camera.CFrame = CFrame.new(Camera.CFrame.Position, PredictedPosition)
-        end
+    if CamlockState and LockedTarget and LockedTarget.Parent and LockedTarget.Parent:FindFirstChild("Humanoid") and LockedTarget.Parent.Humanoid.Health > 0 then
+        local predictedPosition = LockedTarget.Position + (LockedTarget.Velocity * Prediction)
+        Camera.CFrame = CFrame.new(Camera.CFrame.Position, predictedPosition)
     end
 end)
 
@@ -70,5 +68,11 @@ uiStroke.Parent = TextButton
 -- Toggle logic
 TextButton.MouseButton1Click:Connect(function()
     CamlockState = not CamlockState
-    TextButton.Text = CamlockState and "Al0n3 Lock ON" or "Al0n3 Lock OFF"
+    if CamlockState then
+        LockedTarget = FindNearestToCenter()
+        TextButton.Text = "Al0n3 Lock ON"
+    else
+        LockedTarget = nil
+        TextButton.Text = "Al0n3 Lock OFF"
+    end
 end)
