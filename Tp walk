@@ -1,7 +1,8 @@
 local tpwalking = false
-local speed = 100 -- The desired speed for movement
-local chr = game.Players.LocalPlayer.Character
-local hum = chr and chr:FindFirstChildWhichIsA("Humanoid")
+local speed = 9  -- The desired speed for movement
+local player = game.Players.LocalPlayer
+local chr = player.Character or player.CharacterAdded:Wait() -- Ensure the character is loaded
+local hum = chr:WaitForChild("Humanoid")
 
 -- Create a ScreenGui for mobile
 local gui = Instance.new("ScreenGui")
@@ -10,8 +11,8 @@ gui.Parent = game:GetService("CoreGui")
 
 -- Custom button creation
 local TextButton = Instance.new("TextButton")
-TextButton.Text = "Cframe OFF"
-TextButton.TextSize = 16
+TextButton.Text = "Al0n3 Lock OFF"
+TextButton.TextSize = 24
 TextButton.TextColor3 = Color3.new(1, 1, 1)
 TextButton.BackgroundColor3 = Color3.new(0, 0, 0)
 TextButton.BorderColor3 = Color3.new(1, 1, 1)
@@ -59,9 +60,15 @@ end
 TextButton.MouseButton1Click:Connect(function()
     if tpwalking then
         stopTPWalking()
-        TextButton.Text = "Cframe OFF"  -- Update text when turned off
+        TextButton.Text = "Al0n3 Lock OFF"  -- Update text when turned off
     else
         startTPWalking()
-        TextButton.Text = "Cframe ON"   -- Update text when turned on
+        TextButton.Text = "Al0n3 Lock ON"   -- Update text when turned on
     end
+end)
+
+-- Listen for when the player respawns and reset variables
+player.CharacterAdded:Connect(function(newCharacter)
+    chr = newCharacter
+    hum = chr:WaitForChild("Humanoid")
 end)
