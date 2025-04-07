@@ -1,0 +1,80 @@
+-- LocalScript
+
+-- Settings for ESP
+local ESPColor = Color3.fromRGB(255, 0, 0)  -- Red color for ESP box and name
+local BoxSize = Vector3.new(2, 5, 2)  -- The size of the box around the character
+
+-- Function to create an ESP for a player
+local function createESP(player)
+    -- Check if the player is valid and has a character
+    if player.Character and player.Character:FindFirstChild("HumanoidRootPart") then
+        local character = player.Character
+        local hrp = character.HumanoidRootPart
+
+        -- Create a part to form the outline box around the character
+        local box = Instance.new("Part")
+        box.Size = BoxSize
+        box.CFrame = hrp.CFrame
+        box.Anchored = true
+        box.CanCollide = false
+        box.Transparency = 0.5
+        box.BrickColor = BrickColor.new(ESPColor)
+        box.Parent = game.Workspace
+
+        -- Attach the box to the player's HumanoidRootPart so it follows them
+        local weld = Instance.new("WeldConstraint")
+        weld.Parent = box
+        weld.Part0 = box
+        weld.Part1 = hrp
+
+        -- Create a BillboardGui to show the player’s name above their head
+        local billboard = Instance.new("BillboardGui")
+        billboard.Parent = hrp
+        billboard.Adornee = hrp
+        billboard.Size = UDim2.new(0, 100, 0, 50)
+        billboard.StudsOffset = Vector3.new(0, 3, 0)
+
+        local textLabel = Instance.new("TextLabel")
+        textLabel.Parent = billboard
+        textLabel.Text = player.Name
+        textLabel.TextColor3 = Color3.new(1, 1, 1)  -- White color
+        textLabel.BackgroundTransparency = 1
+        textLabel.TextSize = 18
+        textLabel.TextStrokeTransparency = 0.8
+
+        -- Optionally, add more customization here (like adding team color or health)
+
+        -- Clean up ESP when player leaves
+        player.AncestryChanged:Connect(function(_, parent)
+            if not parent then
+                box:Destroy()
+                billboard:Destroy()
+            end
+        end)
+    end
+end
+
+-- Create ESP for all players in the game
+for _, player in pairs(game.Players:GetPlayers()) do
+    createESP(player)
+end
+
+-- Listen for new players and create ESP for them
+game.Players.PlayerAdded:Connect(function(player)
+    player.CharacterAdded:Connect(function()
+        createESP(player)
+    end)
+end)
+
+-- Optionally, listen for when players leave
+game.Players.PlayerRemoving:Connect(function(player)
+    -- Cleanup if player leaves
+    if player.Character and player.Character:FindFirstChild("HumanoidRootPart") then
+        local hrp = player.Character.HumanoidRootPart
+        for _, part in pairs(workspace:GetChildren()) do
+            if part:IsA("Part") and part.Parent == hrp.Parent then
+                part:Destroy()
+            end
+        end
+    end
+end)
