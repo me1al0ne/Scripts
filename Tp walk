@@ -1,18 +1,37 @@
 local tpwalking = false
-local speed = 50 -- The desired speed for movement
+local speed = 100 -- The desired speed for movement
 local chr = game.Players.LocalPlayer.Character
 local hum = chr and chr:FindFirstChildWhichIsA("Humanoid")
 
 -- Create a ScreenGui for mobile
-local screenGui = Instance.new("ScreenGui")
-screenGui.Parent = game.Players.LocalPlayer:WaitForChild("PlayerGui")
+local gui = Instance.new("ScreenGui")
+gui.Name = "patrickGui"
+gui.Parent = game:GetService("CoreGui")
 
--- Button to toggle tpwalking
-local toggleButton = Instance.new("TextButton")
-toggleButton.Size = UDim2.new(0, 200, 0, 50)
-toggleButton.Position = UDim2.new(0.5, -100, 0.9, -25)
-toggleButton.Text = "Enable TP Walking"
-toggleButton.Parent = screenGui
+-- Custom button creation
+local TextButton = Instance.new("TextButton")
+TextButton.Text = "Cframe OFF"
+TextButton.TextSize = 16
+TextButton.TextColor3 = Color3.new(1, 1, 1)
+TextButton.BackgroundColor3 = Color3.new(0, 0, 0)
+TextButton.BorderColor3 = Color3.new(1, 1, 1)
+TextButton.BorderSizePixel = 4
+TextButton.Font = Enum.Font.Code
+TextButton.Size = UDim2.new(0.2, 0, 0.1, 0)
+TextButton.Position = UDim2.new(0, 10, 0.5, 0)
+TextButton.Draggable = true
+TextButton.Parent = gui
+
+-- Adding a corner UI for rounded edges
+local cornerUI = Instance.new("UICorner")
+cornerUI.CornerRadius = UDim.new(0, 5)
+cornerUI.Parent = TextButton
+
+-- Adding stroke effect for the button
+local uiStroke = Instance.new("UIStroke")
+uiStroke.Color = Color3.new(0, 0, 0)
+uiStroke.Thickness = 2
+uiStroke.Parent = TextButton
 
 -- Function to start TP Walking
 local function startTPWalking()
@@ -37,12 +56,12 @@ local function stopTPWalking()
 end
 
 -- Toggle button function
-toggleButton.MouseButton1Click:Connect(function()
+TextButton.MouseButton1Click:Connect(function()
     if tpwalking then
         stopTPWalking()
-        toggleButton.Text = "Enable TP Walking"
+        TextButton.Text = "Cframe OFF"  -- Update text when turned off
     else
         startTPWalking()
-        toggleButton.Text = "Disable TP Walking"
+        TextButton.Text = "Cframe ON"   -- Update text when turned on
     end
 end)
