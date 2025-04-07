@@ -1,77 +1,62 @@
 local Players = game:GetService("Players")
 local RunService = game:GetService("RunService")
 local LocalPlayer = Players.LocalPlayer
-local Mouse = game.Players.LocalPlayer:GetMouse()
-local CamlockState = false
-local Prediction = 0
-local HorizontalPrediction = 0.152848
-local VerticalPrediction = 0.135
-local XPrediction = 1
-local YPrediction = 1
+local Camera = workspace.CurrentCamera
 
-function FindNearestEnemy()
-    local ClosestDistance, ClosestPlayer = math.huge, nil;
-    for _, Player in next, game:GetService("Players"):GetPlayers() do
-        if Player ~= LocalPlayer then
-            local Character = Player.Character
-            if Character and Character:FindFirstChild("Head") and Character:FindFirstChild("Humanoid") and Character.Humanoid.Health > 1 then 
-                local Position, IsVisibleOnViewPort = game:GetService("Workspace").CurrentCamera:WorldToViewportPoint(Character.Head.Position)
-                if IsVisibleOnViewPort then
-                    local Distance = (Vector2.new(Mouse.X, Mouse.Y) - Vector2.new(Position.X, Position.Y)).Magnitude
-                    if Distance < ClosestDistance then
-                        ClosestPlayer = Character.Head
-                        ClosestDistance = Distance
-                    end
+local CamlockState = false
+local Prediction = 0 -- Adjust this for better accuracy based on game speed
+
+-- Function to get the closest player to the center of the screen
+function FindNearestToCenter()
+    local ClosestDistance = math.huge
+    local ClosestTarget = nil
+    local ViewportCenter = Vector2.new(Camera.ViewportSize.X / 2, Camera.ViewportSize.Y / 2)
+
+    for _, player in ipairs(Players:GetPlayers()) do
+        if player ~= LocalPlayer and player.Character and player.Character:FindFirstChild("Head") and player.Character:FindFirstChild("Humanoid") and player.Character.Humanoid.Health > 0 then
+            local Head = player.Character.Head
+            local ScreenPosition, onScreen = Camera:WorldToViewportPoint(Head.Position)
+            if onScreen then
+                local Distance = (ViewportCenter - Vector2.new(ScreenPosition.X, ScreenPosition.Y)).Magnitude
+                if Distance < ClosestDistance then
+                    ClosestDistance = Distance
+                    ClosestTarget = Head
                 end
             end
         end
     end
-    return ClosestPlayer, ClosestDistance
+
+    return ClosestTarget
 end
 
-local enemy = nil
-
--- Function to aim the camera at the nearest enemy's Head
-RunService.Heartbeat:Connect(function()
-    if CamlockState == true then
-        if enemy then
-            local camera = workspace.CurrentCamera
-            camera.CFrame = CFrame.new(camera.CFrame.p, enemy.Position + enemy.Velocity * Prediction)
+-- Aim camera towards the closest player's head every frame while enabled
+RunService.RenderStepped:Connect(function()
+    if CamlockState then
+        local Target = FindNearestToCenter()
+        if Target then
+            local PredictedPosition = Target.Position + (Target.Velocity * Prediction)
+            Camera.CFrame = CFrame.new(Camera.CFrame.Position, PredictedPosition)
         end
     end
 end)
 
+-- GUI Button Setup
 local gui = Instance.new("ScreenGui")
 gui.Name = "patrickGui"
-gui.Parent = game.CoreGui
+gui.Parent = game:GetService("CoreGui")
 
 local TextButton = Instance.new("TextButton")
-TextButton.Text = "Toggle CamLock"
+TextButton.Text = "Al0n3 Lock OFF"
 TextButton.TextSize = 24
 TextButton.TextColor3 = Color3.new(1, 1, 1)
 TextButton.BackgroundColor3 = Color3.new(0, 0, 0)
 TextButton.BorderColor3 = Color3.new(1, 1, 1)
 TextButton.BorderSizePixel = 4
 TextButton.Font = Enum.Font.Code
-TextButton.Size = UDim2.new(0.2, 0, 0.2, 0)
-TextButton.Position = UDim2.new(0, 0, 0.5, 0)
-local state = true
-
-TextButton.MouseButton1Click:Connect(function()
-    state = not state
-    if not state then
-        TextButton.Text = "Al0n3 Lock ON"
-        CamlockState = true
-        enemy = FindNearestEnemy()
-    else
-        TextButton.Text = "Al0n3 Lock OFF"
-        CamlockState = false
-        enemy = nil
-    end
-end)
-
-TextButton.Parent = gui
+TextButton.Size = UDim2.new(0.2, 0, 0.1, 0)
+TextButton.Position = UDim2.new(0, 10, 0.5, 0)
 TextButton.Draggable = true
+TextButton.Parent = gui
 
 local cornerUI = Instance.new("UICorner")
 cornerUI.CornerRadius = UDim.new(0, 5)
@@ -79,5 +64,11 @@ cornerUI.Parent = TextButton
 
 local uiStroke = Instance.new("UIStroke")
 uiStroke.Color = Color3.new(0, 0, 0)
-uiStroke.Thickness = 200
+uiStroke.Thickness = 2
 uiStroke.Parent = TextButton
+
+-- Toggle logic
+TextButton.MouseButton1Click:Connect(function()
+    CamlockState = not CamlockState
+    TextButton.Text = CamlockState and "Al0n3 Lock ON" or "Al0n3 Lock OFF"
+end)
