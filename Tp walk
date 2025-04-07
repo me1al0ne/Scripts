@@ -1,73 +1,48 @@
-local tpwalking = false  -- Movement initially off
-local defaultSpeed = 16  -- Default movement speed
-local speed = 50  -- Speed set to 50 when toggled on
-local player = game.Players.LocalPlayer
-local chr = player.Character or player.CharacterAdded:Wait()
-local hum = chr:WaitForChild("Humanoid")
+local tpwalking = false
+local speed = 50 -- The desired speed for movement
+local chr = game.Players.LocalPlayer.Character
+local hum = chr and chr:FindFirstChildWhichIsA("Humanoid")
 
--- Create the GUI
-local gui = Instance.new("ScreenGui")
-gui.Name = "patrickGui"
-gui.Parent = game:GetService("CoreGui")
+-- Create a ScreenGui for mobile
+local screenGui = Instance.new("ScreenGui")
+screenGui.Parent = game.Players.LocalPlayer:WaitForChild("PlayerGui")
 
--- Create the toggle button
-local TextButton = Instance.new("TextButton")
-TextButton.Text = "Movement OFF"
-TextButton.TextSize = 24
-TextButton.TextColor3 = Color3.new(1, 1, 1)
-TextButton.BackgroundColor3 = Color3.new(0, 0, 0)
-TextButton.BorderColor3 = Color3.new(1, 1, 1)
-TextButton.BorderSizePixel = 4
-TextButton.Font = Enum.Font.Code
-TextButton.Size = UDim2.new(0.2, 0, 0.1, 0)
-TextButton.Position = UDim2.new(0, 10, 0.5, 0)
-TextButton.Draggable = true
-TextButton.Parent = gui
+-- Button to toggle tpwalking
+local toggleButton = Instance.new("TextButton")
+toggleButton.Size = UDim2.new(0, 200, 0, 50)
+toggleButton.Position = UDim2.new(0.5, -100, 0.9, -25)
+toggleButton.Text = "Enable TP Walking"
+toggleButton.Parent = screenGui
 
-local cornerUI = Instance.new("UICorner")
-cornerUI.CornerRadius = UDim.new(0, 5)
-cornerUI.Parent = TextButton
-
-local uiStroke = Instance.new("UIStroke")
-uiStroke.Color = Color3.new(0, 0, 0)
-uiStroke.Thickness = 2
-uiStroke.Parent = TextButton
-
--- Toggle logic for movement
-TextButton.MouseButton1Click:Connect(function()
-    tpwalking = not tpwalking  -- Toggle the movement state
-    if tpwalking then
-        TextButton.Text = "Movement ON"  -- Update the button text
-    else
-        TextButton.Text = "Movement OFF"  -- Update the button text
-    end
-end)
-
--- Function to move the character with CFrame based on the speed
-local tpwalking = true
-local function moveCharacter()
-    while true do
-        wait(0.03)  -- Update interval for movement
-
-        -- Only move if tpwalking is enabled and the character is valid
-        if tpwalking and chr and hum and hum.Parent then
-            -- Check if the character is moving
-            if hum.MoveDirection.Magnitude > 0 then
-                -- Get the movement direction and apply speed
-                local moveDirection = hum.MoveDirection
-                local newCFrame = chr.HumanoidRootPart.CFrame + moveDirection * speed * 0.03  -- Adjust with delta time
-                chr.HumanoidRootPart.CFrame = newCFrame
-            end
-        elseif not tpwalking and chr and hum and hum.Parent then
-            -- When movement is off, set the speed back to default
-            if hum.MoveDirection.Magnitude > 0 then
-                local moveDirection = hum.MoveDirection
-                local newCFrame = chr.HumanoidRootPart.CFrame + moveDirection * defaultSpeed * 0.03
-                chr.HumanoidRootPart.CFrame = newCFrame
-            end
+-- Function to start TP Walking
+local function startTPWalking()
+    tpwalking = true
+    while tpwalking and chr and hum and hum.Parent do
+        local delta = wait(0.03)  -- Adjust the rate at which movement updates (can be lower or higher)
+        
+        if hum.MoveDirection.Magnitude > 0 then
+            -- Calculate the movement direction based on the humanoid's MoveDirection
+            local moveDirection = hum.MoveDirection
+            
+            -- Update the character's CFrame based on the movement direction and speed
+            local newCFrame = chr.HumanoidRootPart.CFrame + moveDirection * speed * delta
+            chr.HumanoidRootPart.CFrame = newCFrame
         end
     end
 end
 
--- Start the movement loop in a separate coroutine
-coroutine.wrap(moveCharacter)()  -- Run the movement function in a separate coroutine
+-- Function to stop TP Walking
+local function stopTPWalking()
+    tpwalking = false
+end
+
+-- Toggle button function
+toggleButton.MouseButton1Click:Connect(function()
+    if tpwalking then
+        stopTPWalking()
+        toggleButton.Text = "Enable TP Walking"
+    else
+        startTPWalking()
+        toggleButton.Text = "Disable TP Walking"
+    end
+end)
