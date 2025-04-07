@@ -1,5 +1,6 @@
 local tpwalking = false  -- Movement initially off
-local speed = 50  -- Speed set to 50
+local defaultSpeed = 16  -- Default movement speed
+local speed = 50  -- Speed set to 50 when toggled on
 local player = game.Players.LocalPlayer
 local chr = player.Character or player.CharacterAdded:Wait()
 local hum = chr:WaitForChild("Humanoid")
@@ -56,9 +57,14 @@ local function moveCharacter()
                 local newCFrame = chr.HumanoidRootPart.CFrame + moveDirection * speed * 0.03  -- Adjust with delta time
                 chr.HumanoidRootPart.CFrame = newCFrame
             end
+        elseif not tpwalking then
+            -- When movement is off, set the speed back to default
+            local moveDirection = hum.MoveDirection
+            local newCFrame = chr.HumanoidRootPart.CFrame + moveDirection * defaultSpeed * 0.03
+            chr.HumanoidRootPart.CFrame = newCFrame
         end
     end
 end
 
--- Start the movement loop
+-- Start the movement loop in a separate coroutine
 coroutine.wrap(moveCharacter)()  -- Run the movement function in a separate coroutine
