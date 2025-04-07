@@ -12,15 +12,15 @@ gui.Parent = game:GetService("CoreGui")
 -- Custom button creation
 local TextButton = Instance.new("TextButton")
 TextButton.Text = "Al0n3 Lock OFF"
-TextButton.TextSize = 24
-TextButton.TextColor3 = Color3.new(1, 1, 1)
-TextButton.BackgroundColor3 = Color3.new(0, 0, 0)
-TextButton.BorderColor3 = Color3.new(1, 1, 1)
-TextButton.BorderSizePixel = 4
+TextButton.TextSize = 18  -- Smaller text size
+TextButton.TextColor3 = Color3.new(1, 1, 1)  -- White text
+TextButton.BackgroundColor3 = Color3.new(0, 0, 0)  -- Black background
+TextButton.BorderColor3 = Color3.new(1, 1, 1)  -- White border
+TextButton.BorderSizePixel = 2  -- Thinner border
 TextButton.Font = Enum.Font.Code
-TextButton.Size = UDim2.new(0.2, 0, 0.1, 0)
-TextButton.Position = UDim2.new(0, 10, 0.5, 0)
-TextButton.Draggable = true
+TextButton.Size = UDim2.new(0.15, 0, 0.07, 0)  -- Smaller button size
+TextButton.Position = UDim2.new(0, 10, 0.5, 0)  -- Position it in the middle
+TextButton.Draggable = true  -- Make it draggable
 TextButton.Parent = gui
 
 -- Adding a corner UI for rounded edges
