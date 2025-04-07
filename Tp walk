@@ -57,11 +57,13 @@ local function moveCharacter()
                 local newCFrame = chr.HumanoidRootPart.CFrame + moveDirection * speed * 0.03  -- Adjust with delta time
                 chr.HumanoidRootPart.CFrame = newCFrame
             end
-        elseif not tpwalking then
+        elseif not tpwalking and chr and hum and hum.Parent then
             -- When movement is off, set the speed back to default
-            local moveDirection = hum.MoveDirection
-            local newCFrame = chr.HumanoidRootPart.CFrame + moveDirection * defaultSpeed * 0.03
-            chr.HumanoidRootPart.CFrame = newCFrame
+            if hum.MoveDirection.Magnitude > 0 then
+                local moveDirection = hum.MoveDirection
+                local newCFrame = chr.HumanoidRootPart.CFrame + moveDirection * defaultSpeed * 0.03
+                chr.HumanoidRootPart.CFrame = newCFrame
+            end
         end
     end
 end
