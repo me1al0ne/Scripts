@@ -6,7 +6,10 @@ local BoxSize = Vector3.new(2, 5, 2)  -- The size of the box around the characte
 
 -- Function to create an ESP for a player
 local function createESP(player)
-    -- Check if the player is valid and has a character
+    -- Make sure the player is not the local player (so we don’t ESP ourselves)
+    if player == game.Players.LocalPlayer then return end
+
+    -- Check if the player has a character and if it has a HumanoidRootPart
     if player.Character and player.Character:FindFirstChild("HumanoidRootPart") then
         local character = player.Character
         local hrp = character.HumanoidRootPart
@@ -54,15 +57,19 @@ local function createESP(player)
     end
 end
 
--- Create ESP for all players in the game
+-- Create ESP for all players in the game except the local player
 for _, player in pairs(game.Players:GetPlayers()) do
-    createESP(player)
+    if player ~= game.Players.LocalPlayer then
+        createESP(player)
+    end
 end
 
 -- Listen for new players and create ESP for them
 game.Players.PlayerAdded:Connect(function(player)
     player.CharacterAdded:Connect(function()
-        createESP(player)
+        if player ~= game.Players.LocalPlayer then
+            createESP(player)
+        end
     end)
 end)
 
