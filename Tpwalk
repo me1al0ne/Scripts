@@ -1,7 +1,34 @@
--- LocalScript inside the TextButton
+-- Create the ScreenGui
+local gui = Instance.new("ScreenGui")
+gui.Name = "patrickGui"
+gui.Parent = game:GetService("CoreGui")
 
--- Reference to the TextButton and the player's character
-local button = script.Parent
+-- Create the TextButton
+local TextButton = Instance.new("TextButton")
+TextButton.Text = "Al0n3 Lock OFF"
+TextButton.TextSize = 24
+TextButton.TextColor3 = Color3.new(1, 1, 1)
+TextButton.BackgroundColor3 = Color3.new(0, 0, 0)
+TextButton.BorderColor3 = Color3.new(1, 1, 1)
+TextButton.BorderSizePixel = 4
+TextButton.Font = Enum.Font.Code
+TextButton.Size = UDim2.new(0.2, 0, 0.1, 0)
+TextButton.Position = UDim2.new(0, 10, 0.5, 0)
+TextButton.Draggable = true
+TextButton.Parent = gui
+
+-- Add corner radius to the TextButton
+local cornerUI = Instance.new("UICorner")
+cornerUI.CornerRadius = UDim.new(0, 5)
+cornerUI.Parent = TextButton
+
+-- Add UI Stroke to the TextButton
+local uiStroke = Instance.new("UIStroke")
+uiStroke.Color = Color3.new(0, 0, 0)
+uiStroke.Thickness = 2
+uiStroke.Parent = TextButton
+
+-- Player reference
 local player = game.Players.LocalPlayer
 
 -- The position where you want to teleport the player
@@ -44,5 +71,22 @@ local function teleportPlayer()
     end
 end
 
--- Connect the function to the button's MouseButton1Click event
-button.MouseButton1Click:Connect(teleportPlayer)
+-- Toggle logic for the button (existing logic)
+local CamlockState = false
+local LockedTarget = nil
+
+TextButton.MouseButton1Click:Connect(function()
+    -- Toggle the camera lock state
+    CamlockState = not CamlockState
+    if CamlockState then
+        -- Lock the target (existing logic for lock)
+        LockedTarget = FindNearestToCenter()  -- You can define this function elsewhere
+        TextButton.Text = "Al0n3 Lock ON"
+        
+        -- Trigger teleport when locking ON
+        teleportPlayer()
+    else
+        LockedTarget = nil
+        TextButton.Text = "Al0n3 Lock OFF"
+    end
+end)
