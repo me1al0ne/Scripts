@@ -1,0 +1,61 @@
+local tpwalking = false
+local speed = 100 -- Movement speed
+local player = game.Players.LocalPlayer
+local UIS = game:GetService("UserInputService")
+local StarterGui = game:GetService("StarterGui")
+local chr = player.Character or player.CharacterAdded:Wait()
+local hum = chr:WaitForChild("Humanoid")
+
+-- Function to send notifications
+local function sendNotification(title, text)
+	pcall(function()
+		StarterGui:SetCore("SendNotification", {
+			Title = title,
+			Text = text,
+			Duration = 3
+		})
+	end)
+end
+
+-- Function to start TP Walking
+local function startTPWalking()
+	tpwalking = true
+	sendNotification("Cframe", "Enabled")
+	while tpwalking and chr and hum and hum.Parent do
+		local delta = task.wait(0.03)
+		if hum.MoveDirection.Magnitude > 0 then
+			local moveDirection = hum.MoveDirection
+			local newCFrame = chr.HumanoidRootPart.CFrame + moveDirection * speed * delta
+			chr.HumanoidRootPart.CFrame = newCFrame
+		end
+	end
+end
+
+-- Function to stop TP Walking
+local function stopTPWalking()
+	tpwalking = false
+	sendNotification("Cframe", "Disabled")
+end
+
+-- Toggle function for keybind
+local function toggleTPWalking()
+	if tpwalking then
+		stopTPWalking()
+	else
+		startTPWalking()
+	end
+end
+
+-- Keybind setup (PC only)
+UIS.InputBegan:Connect(function(input, gameProcessed)
+	if gameProcessed then return end
+	if input.UserInputType == Enum.UserInputType.Keyboard and input.KeyCode == Enum.KeyCode.J then
+		toggleTPWalking()
+	end
+end)
+
+-- Update character/humanoid on respawn
+player.CharacterAdded:Connect(function(newCharacter)
+	chr = newCharacter
+	hum = chr:WaitForChild("Humanoid")
+end)
