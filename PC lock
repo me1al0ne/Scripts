@@ -7,7 +7,7 @@ local Camera = workspace.CurrentCamera
 
 local CamlockState = false
 local LockedTarget = nil
-local Prediction = 0 -- Adjust as needed
+local Prediction = 0.14 -- Adjust as needed
 
 -- Find closest player to center of screen
 function FindNearestToCenter()
