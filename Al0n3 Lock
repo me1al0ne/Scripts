@@ -1,3 +1,23 @@
+-- Whitelist check (MUST be run in exploit environment)
+local whitelistURL = "https://raw.githubusercontent.com/me1al0ne/ids/refs/heads/main/Camlock%20whitelist"
+local success, response = pcall(function()
+    return game:HttpGet(whitelistURL)
+end)
+
+if not success then
+    game.Players.LocalPlayer:Kick("Failed to check whitelist.")
+    return
+end
+
+local userId = tostring(game.Players.LocalPlayer.UserId)
+
+if not string.find(response, userId) then
+    game.Players.LocalPlayer:Kick("You are not whitelisted to use Al0n3 Camlock.")
+    return
+end
+
+-- === CAMLOCK CODE STARTS HERE === --
+
 local Players = game:GetService("Players")
 local RunService = game:GetService("RunService")
 local LocalPlayer = Players.LocalPlayer
