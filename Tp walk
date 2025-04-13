@@ -1,5 +1,5 @@
 local tpwalking = false
-local speed = 100  -- The desired speed for movement
+local speed = 35  -- The desired speed for movement
 local player = game.Players.LocalPlayer
 local chr = player.Character or player.CharacterAdded:Wait() -- Ensure the character is loaded
 local hum = chr:WaitForChild("Humanoid")
