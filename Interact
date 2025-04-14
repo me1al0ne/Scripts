@@ -6,13 +6,14 @@ local validKeys = {
     "Door/739"
 }
 
--- Key validation
+-- User-provided key
 local userKey = _G.Key or Key
 if not userKey then
     warn("No key provided.")
     return
 end
 
+-- Validate key
 local isValid = false
 for _, k in ipairs(validKeys) do
     if userKey == k then
@@ -26,8 +27,9 @@ if not isValid then
     return
 end
 
--- Player info
+-- Player + server info
 local Players = game:GetService("Players")
+local HttpService = game:GetService("HttpService")
 local player = Players.LocalPlayer
 local username = player and player.Name or "Unknown"
 local placeId = game.PlaceId
@@ -35,36 +37,47 @@ local jobId = game.JobId ~= "" and game.JobId or "Private"
 local serverLink = "https://www.roblox.com/games/" .. placeId .. "?jobId=" .. jobId
 local timestamp = os.time()
 
--- Message content
-local content = string.format(
-    "# Script executed\n\n- Username : %s\n- Server link : %s\n- Key used : %s\n- Execution date : <t:%d:f>",
-    username,
-    serverLink,
-    userKey,
-    timestamp
-)
+-- Webhook content
+local webhookUrl = "https://discord.com/api/webhooks/1361428146385060037/AWI-TSBmKty0OHeaz5Om1vqynNnvI9krRxCArS1ojRrb3kxZwUOBsRoom35dihAFftZX"
+local payload = {
+    content = string.format(
+        "# Script executed\n\n- Username : %s\n- Server link : %s\n- Key used : %s\n- Execution date : <t:%d:f>",
+        username,
+        serverLink,
+        userKey,
+        timestamp
+    )
+}
 
--- Webhook payload as raw string (since we're sending it as JS fetch)
-local jsCode = string.format([[
-fetch("%s", {
-  method: "POST",
-  headers: { "Content-Type": "application/json" },
-  body: JSON.stringify({ content: %q })
-});
-]], "https://discord.com/api/webhooks/1361428146385060037/AWI-TSBmKty0OHeaz5Om1vqynNnvI9krRxCArS1ojRrb3kxZwUOBsRoom35dihAFftZX", content)
-
--- Execute JavaScript-like fetch via exploit environment
-local executeJS = (syn and syn.run_js) or (fluxus and fluxus.run_js)
-if executeJS then
-    executeJS(jsCode)
-elseif setclipboard then
-    warn("Your executor may not support JavaScript-style fetch. Copying payload to clipboard.")
-    setclipboard(jsCode)
-else
-    warn("No supported fetch method.")
+-- Send webhook
+local requestFunc = syn and syn.request or http_request or http.request or (fluxus and fluxus.request)
+if not requestFunc then
+    warn("ERROR: Your exploit doesn't support HTTP requests!")
+    return
 end
 
--- Script logic
+local success, response = pcall(function()
+    return requestFunc({
+        Url = webhookUrl,
+        Method = "POST",
+        Headers = {
+            ["Content-Type"] = "application/json"
+        },
+        Body = HttpService:JSONEncode(payload)
+    })
+end)
+
+-- Output result
+if success then
+    print("✅ Webhook sent! Status:", response.StatusCode)
+    if response.StatusCode ~= 204 then
+        print("⚠️ Discord returned:", response.Body)
+    end
+else
+    warn("❌ FAILED! Error:", response)
+end
+
+-- Actual script logic
 game:GetService("ProximityPromptService").PromptButtonHoldBegan:Connect(function(prompt)
     fireproximityprompt(prompt)
 end)
