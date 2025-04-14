@@ -47,20 +47,29 @@ local payload = {
                          "\n**UserId:** " .. userid ..
                          "\n**Key Used:** " .. userKey ..
                          "\n**Server Link:** [Join Server](" .. serverLink .. ")",
-        ["color"] = tonumber(0x00ffcc)
+        ["color"] = tonumber(0x00ffcc),
+        ["footer"] = {
+            ["text"] = "Executed at: " .. os.date("%Y-%m-%d %H:%M:%S")
+        }
     }}
 }
 
 -- Encode data to JSON
-local jsonData = HttpService:JSONEncode(payload)
+local success, jsonData = pcall(HttpService.JSONEncode, HttpService, payload)
+if not success then
+    warn("Failed to encode JSON data")
+    return
+end
 
--- Use exploit-specific HTTP request
-local requestFunc = syn and syn.request or http_request or request or (http and http.request)
+-- Try different request methods
+local requestFunc = syn and syn.request or http and http.request or fluxus and fluxus.request or request or http_request
+if not requestFunc and KRNL_LOADED then
+    requestFunc = http_request
+end
 
 if requestFunc then
-    pcall(function()
-        -- Try sending the request
-        local response = requestFunc({
+    local success, response = pcall(function()
+        return requestFunc({
             Url = webhookUrl,
             Method = "POST",
             Headers = {
@@ -68,9 +77,11 @@ if requestFunc then
             },
             Body = jsonData
         })
-        -- Optionally log the response for debugging
-        print(response)
     end)
+    
+    if not success then
+        warn("Webhook request failed: " .. tostring(response))
+    end
 else
     warn("Your exploit does not support HTTP requests.")
 end
