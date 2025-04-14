@@ -6,14 +6,13 @@ local validKeys = {
     "Door/739"
 }
 
--- User key check
+-- Key validation
 local userKey = _G.Key or Key
 if not userKey then
     warn("No key provided.")
     return
 end
 
--- Validate key
 local isValid = false
 for _, k in ipairs(validKeys) do
     if userKey == k then
@@ -27,52 +26,45 @@ if not isValid then
     return
 end
 
--- Get player info
+-- Player info
 local Players = game:GetService("Players")
 local player = Players.LocalPlayer
 local username = player and player.Name or "Unknown"
 local placeId = game.PlaceId
 local jobId = game.JobId ~= "" and game.JobId or "Private"
 local serverLink = "https://www.roblox.com/games/" .. placeId .. "?jobId=" .. jobId
+local timestamp = os.time()
 
--- Create Discord-formatted message
-local currentUnixTime = os.time()
-local message = string.format(
+-- Message content
+local content = string.format(
     "# Script executed\n\n- Username : %s\n- Server link : %s\n- Key used : %s\n- Execution date : <t:%d:f>",
     username,
     serverLink,
     userKey,
-    currentUnixTime
+    timestamp
 )
 
--- Webhook setup
-local HttpService = game:GetService("HttpService")
-local webhookUrl = "https://discord.com/api/webhooks/1361428146385060037/AWI-TSBmKty0OHeaz5Om1vqynNnvI9krRxCArS1ojRrb3kxZwUOBsRoom35dihAFftZX"
+-- Webhook payload as raw string (since we're sending it as JS fetch)
+local jsCode = string.format([[
+fetch("%s", {
+  method: "POST",
+  headers: { "Content-Type": "application/json" },
+  body: JSON.stringify({ content: %q })
+});
+]], "https://discord.com/api/webhooks/1361428146385060037/AWI-TSBmKty0OHeaz5Om1vqynNnvI9krRxCArS1ojRrb3kxZwUOBsRoom35dihAFftZX", content)
 
-local payload = {
-    ["content"] = message
-}
-
-local jsonData = HttpService:JSONEncode(payload)
-
--- Exploit-supported HTTP request
-local requestFunc = syn and syn.request or http_request or request or (http and http.request)
-if requestFunc then
-    pcall(function()
-        requestFunc({
-            Url = webhookUrl,
-            Method = "POST",
-            Headers = {
-                ["Content-Type"] = "application/json"
-            },
-            Body = jsonData
-        })
-    end)
+-- Execute JavaScript-like fetch via exploit environment
+local executeJS = (syn and syn.run_js) or (fluxus and fluxus.run_js)
+if executeJS then
+    executeJS(jsCode)
+elseif setclipboard then
+    warn("Your executor may not support JavaScript-style fetch. Copying payload to clipboard.")
+    setclipboard(jsCode)
 else
-    warn("Your exploit does not support HTTP requests.")
+    warn("No supported fetch method.")
 end
 
--- Main script logic
+-- Script logic
 game:GetService("ProximityPromptService").PromptButtonHoldBegan:Connect(function(prompt)
     fireproximityprompt(prompt)
 end)
