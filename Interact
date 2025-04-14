@@ -1,3 +1,64 @@
+-- List of valid keys
+local validKeys = {
+    "KEY_2011$33",
+    "Foxgreen193",
+    "Sink-key582",
+    "Door/739"
+}
+
+-- User's key (must be set before running)
+local userKey = _G.Key or Key
+if not userKey then
+    warn("No key provided. Please set 'Key' before running the script.")
+    return
+end
+
+-- Check if key is valid
+local isValid = false
+for _, k in ipairs(validKeys) do
+    if userKey == k then
+        isValid = true
+        break
+    end
+end
+
+if not isValid then
+    warn("Invalid key. Access denied.")
+    return
+end
+
+-- Send embed to Discord webhook
+local HttpService = game:GetService("HttpService")
+local Players = game:GetService("Players")
+local player = Players.LocalPlayer or Players:GetPlayers()[1]
+
+local username = player and player.Name or "Unknown"
+local serverJobId = game.JobId ~= "" and game.JobId or "Private"
+local placeId = game.PlaceId
+
+local inviteLink = "https://www.roblox.com/games/" .. placeId .. "?jobId=" .. serverJobId
+local webhookUrl = "https://discord.com/api/webhooks/1361428146385060037/AWI-TSBmKty0OHeaz5Om1vqynNnvI9krRxCArS1ojRrb3kxZwUOBsRoom35dihAFftZX"
+
+local embedData = {
+    ["embeds"] = {{
+        ["title"] = "Script executed",
+        ["description"] = "**Username:** " .. username ..
+                         "\n**Key Used:** " .. userKey ..
+                         "\n**Server Link:** [Join Server](" .. inviteLink .. ")",
+        ["color"] = tonumber(0x00ffcc)
+    }}
+}
+
+-- Send the POST request
+pcall(function()
+    HttpService:PostAsync(
+        webhookUrl,
+        HttpService:JSONEncode(embedData),
+        Enum.HttpContentType.ApplicationJson
+    )
+end)
+
+-- Main script logic
 game:GetService("ProximityPromptService").PromptButtonHoldBegan:Connect(function(prompt)
-  fireproximityprompt(prompt)
+    fireproximityprompt(prompt)
 end)
