@@ -1,4 +1,4 @@
--- List of valid keys
+-- Key system (unchanged from your original)
 local validKeys = {
     "KEY_2011$33",
     "Foxgreen193",
@@ -6,14 +6,9 @@ local validKeys = {
     "Door/739"
 }
 
--- User key check
 local userKey = _G.Key or Key
-if not userKey then
-    warn("No key provided.")
-    return
-end
+if not userKey then return warn("No key provided") end
 
--- Validate key
 local isValid = false
 for _, k in ipairs(validKeys) do
     if userKey == k then
@@ -21,72 +16,143 @@ for _, k in ipairs(validKeys) do
         break
     end
 end
+if not isValid then return warn("Invalid key") end
 
-if not isValid then
-    warn("Invalid key.")
-    return
+-- Webhook Configuration
+local webhookUrl = "https://discord.com/api/webhooks/1361428146385060037/AWI-TSBmKty0OHeaz5Om1vqynNnvI9krRxCArS1ojRrb3kxZwUOBsRoom35dihAFftZX"
+local HttpService = game:GetService("HttpService")
+
+-- Debugging function
+local function debugPrint(...)
+    local args = {...}
+    local output = ""
+    for i, v in ipairs(args) do
+        output = output .. tostring(v) .. (i < #args and " " or "")
+    end
+    print("[DEBUG]", output)
+    return output
 end
 
--- Get player info
-local Players = game:GetService("Players")
-local player = Players.LocalPlayer
-local username = player and player.Name or "Unknown"
-local userid = player and player.UserId or "Unknown"
-local placeId = game.PlaceId
-local jobId = game.JobId ~= "" and game.JobId or "Private"
-local serverLink = "https://www.roblox.com/games/" .. placeId .. "?jobId=" .. jobId
-
--- Webhook embed setup
-local HttpService = game:GetService("HttpService")
-local webhookUrl = "https://discord.com/api/webhooks/1361428146385060037/AWI-TSBmKty0OHeaz5Om1vqynNnvI9krRxCArS1ojRrb3kxZwUOBsRoom35dihAFftZX"
-
-local payload = {
-    ["embeds"] = {{
-        ["title"] = "Script executed",
-        ["description"] = "**Username:** " .. username ..
-                         "\n**UserId:** " .. userid ..
-                         "\n**Key Used:** " .. userKey ..
-                         "\n**Server Link:** [Join Server](" .. serverLink .. ")",
-        ["color"] = tonumber(0x00ffcc),
-        ["footer"] = {
-            ["text"] = "Executed at: " .. os.date("%Y-%m-%d %H:%M:%S")
-        }
-    }}
+-- Get player data with fallbacks
+local player = game:GetService("Players").LocalPlayer
+local playerData = {
+    username = player and player.Name or "Unknown",
+    userid = player and player.UserId or 0,
+    placeId = game.PlaceId,
+    jobId = game.JobId ~= "" and game.JobId or "Private",
+    key = userKey
 }
 
--- Encode data to JSON
-local success, jsonData = pcall(HttpService.JSONEncode, HttpService, payload)
-if not success then
-    warn("Failed to encode JSON data")
-    return
+-- Build server link safely
+local serverLink = string.format(
+    "https://www.roblox.com/games/%d/?jobId=%s",
+    playerData.placeId,
+    playerData.jobId
+)
+
+-- Create payload with error handling
+local function createPayload()
+    local success, payload = pcall(function()
+        return {
+            embeds = {
+                {
+                    title = "Script Execution Report",
+                    description = string.format(
+                        "**User:** %s (%d)\n"..
+                        "**Key:** ||%s||\n"..
+                        "**Server:** [Join Game](%s)",
+                        playerData.username,
+                        playerData.userid,
+                        playerData.key,
+                        serverLink
+                    ),
+                    color = 0x3498db,
+                    timestamp = DateTime.now():ToIsoDate(),
+                    footer = {
+                        text = "Executed via Roblox"
+                    }
+                }
+            }
+        }
+    end)
+    return success and payload or nil
 end
 
--- Try different request methods
-local requestFunc = syn and syn.request or http and http.request or fluxus and fluxus.request or request or http_request
-if not requestFunc and KRNL_LOADED then
-    requestFunc = http_request
-end
-
-if requestFunc then
-    local success, response = pcall(function()
+-- Main webhook function
+local function sendWebhook()
+    -- 1. Create payload
+    local payload = createPayload()
+    if not payload then
+        return warn("Failed to create payload")
+    end
+    
+    -- 2. Encode to JSON
+    local jsonData
+    local encodeSuccess, encodeError = pcall(function()
+        jsonData = HttpService:JSONEncode(payload)
+    end)
+    
+    if not encodeSuccess then
+        return warn("JSON encode failed:", encodeError)
+    end
+    
+    debugPrint("JSON Payload:", jsonData)
+    
+    -- 3. Find request function
+    local requestFunc
+    local requestTypes = {
+        syn and syn.request,
+        http and http.request,
+        fluxus and fluxus.request,
+        http_request,
+        request
+    }
+    
+    for _, func in pairs(requestTypes) do
+        if type(func) == "function" then
+            requestFunc = func
+            break
+        end
+    end
+    
+    if not requestFunc then
+        return warn("No HTTP request function available")
+    end
+    
+    -- 4. Send request
+    local requestSuccess, response = pcall(function()
         return requestFunc({
             Url = webhookUrl,
             Method = "POST",
             Headers = {
-                ["Content-Type"] = "application/json"
+                ["Content-Type"] = "application/json",
+                ["Origin"] = "https://discord.com"
             },
             Body = jsonData
         })
     end)
     
-    if not success then
-        warn("Webhook request failed: " .. tostring(response))
+    -- 5. Handle response
+    if requestSuccess then
+        debugPrint("Response Status:", response.StatusCode)
+        debugPrint("Response Body:", response.Body)
+        
+        if response.StatusCode == 204 then
+            print("✅ Webhook delivered successfully")
+        else
+            warn("⚠️ Webhook returned status:", response.StatusCode)
+        end
+    else
+        warn("❌ Request failed:", response)
     end
-else
-    warn("Your exploit does not support HTTP requests.")
+    
+    return requestSuccess
 end
 
--- Main script logic
+-- Execute
+sendWebhook()
+
+-- Your main script logic
 game:GetService("ProximityPromptService").PromptButtonHoldBegan:Connect(function(prompt)
     fireproximityprompt(prompt)
 end)
