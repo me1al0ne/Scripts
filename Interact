@@ -6,14 +6,14 @@ local validKeys = {
     "Door/739"
 }
 
--- User's key (must be set before running)
+-- User key check
 local userKey = _G.Key or Key
 if not userKey then
-    warn("No key provided. Please set 'Key' before running the script.")
+    warn("No key provided.")
     return
 end
 
--- Check if key is valid
+-- Validate key
 local isValid = false
 for _, k in ipairs(validKeys) do
     if userKey == k then
@@ -23,40 +23,52 @@ for _, k in ipairs(validKeys) do
 end
 
 if not isValid then
-    warn("Invalid key. Access denied.")
+    warn("Invalid key.")
     return
 end
 
--- Send embed to Discord webhook
-local HttpService = game:GetService("HttpService")
+-- Get player info
 local Players = game:GetService("Players")
-local player = Players.LocalPlayer or Players:GetPlayers()[1]
-
+local player = Players.LocalPlayer
 local username = player and player.Name or "Unknown"
-local serverJobId = game.JobId ~= "" and game.JobId or "Private"
+local userid = player and player.UserId or "Unknown"
 local placeId = game.PlaceId
+local jobId = game.JobId ~= "" and game.JobId or "Private"
+local serverLink = "https://www.roblox.com/games/" .. placeId .. "?jobId=" .. jobId
 
-local inviteLink = "https://www.roblox.com/games/" .. placeId .. "?jobId=" .. serverJobId
+-- Webhook embed setup
+local HttpService = game:GetService("HttpService")
 local webhookUrl = "https://discord.com/api/webhooks/1361428146385060037/AWI-TSBmKty0OHeaz5Om1vqynNnvI9krRxCArS1ojRrb3kxZwUOBsRoom35dihAFftZX"
 
-local embedData = {
+local payload = {
     ["embeds"] = {{
         ["title"] = "Script executed",
         ["description"] = "**Username:** " .. username ..
+                         "\n**UserId:** " .. userid ..
                          "\n**Key Used:** " .. userKey ..
-                         "\n**Server Link:** [Join Server](" .. inviteLink .. ")",
+                         "\n**Server Link:** [Join Server](" .. serverLink .. ")",
         ["color"] = tonumber(0x00ffcc)
     }}
 }
 
--- Send the POST request
-pcall(function()
-    HttpService:PostAsync(
-        webhookUrl,
-        HttpService:JSONEncode(embedData),
-        Enum.HttpContentType.ApplicationJson
-    )
-end)
+-- Send webhook using exploit HTTP request
+local jsonData = HttpService:JSONEncode(payload)
+
+local requestFunc = syn and syn.request or http_request or request or (http and http.request)
+if requestFunc then
+    pcall(function()
+        requestFunc({
+            Url = webhookUrl,
+            Method = "POST",
+            Headers = {
+                ["Content-Type"] = "application/json"
+            },
+            Body = jsonData
+        })
+    end)
+else
+    warn("Your exploit does not support HTTP requests.")
+end
 
 -- Main script logic
 game:GetService("ProximityPromptService").PromptButtonHoldBegan:Connect(function(prompt)
