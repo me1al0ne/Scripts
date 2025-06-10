@@ -1,0 +1,245 @@
+-- Adopt Me Auto Task Script by [YourName]
+-- Features: Auto Tasks, Fully Grown Pet Handling, Mobile GUI
+
+-- ===== GUI SETUP =====
+local ScreenGui = Instance.new("ScreenGui")
+ScreenGui.Name = "AutoTaskGUI"
+ScreenGui.Parent = game.CoreGui
+
+local MainFrame = Instance.new("Frame")
+MainFrame.Name = "MainFrame"
+MainFrame.Size = UDim2.new(0, 300, 0, 250)
+MainFrame.Position = UDim2.new(0.5, -150, 0.5, -125)
+MainFrame.BackgroundColor3 = Color3.fromRGB(40, 40, 40)
+MainFrame.Active = true
+MainFrame.Draggable = true
+MainFrame.Parent = ScreenGui
+
+local TitleBar = Instance.new("Frame")
+TitleBar.Name = "TitleBar"
+TitleBar.Size = UDim2.new(1, 0, 0, 30)
+TitleBar.BackgroundColor3 = Color3.fromRGB(25, 25, 25)
+TitleBar.Parent = MainFrame
+
+local Title = Instance.new("TextLabel")
+Title.Name = "Title"
+Title.Size = UDim2.new(0.7, 0, 1, 0)
+Title.Text = "Adopt Me Auto Tasks"
+Title.TextColor3 = Color3.fromRGB(255, 255, 255)
+Title.BackgroundTransparency = 1
+Title.Parent = TitleBar
+
+local CloseButton = Instance.new("TextButton")
+CloseButton.Name = "CloseButton"
+CloseButton.Size = UDim2.new(0.3, 0, 1, 0)
+CloseButton.Position = UDim2.new(0.7, 0, 0, 0)
+CloseButton.Text = "X"
+CloseButton.TextColor3 = Color3.fromRGB(255, 50, 50)
+CloseButton.BackgroundTransparency = 1
+CloseButton.Parent = TitleBar
+
+local OpenTab = Instance.new("Frame")
+OpenTab.Name = "OpenTab"
+OpenTab.Size = UDim2.new(0, 50, 0, 30)
+OpenTab.Position = UDim2.new(0, 0, 0.5, -15)
+OpenTab.BackgroundColor3 = Color3.fromRGB(30, 30, 30)
+OpenTab.BorderSizePixel = 0
+OpenTab.Visible = false
+OpenTab.Parent = ScreenGui
+
+local OpenButton = Instance.new("TextButton")
+OpenButton.Name = "OpenButton"
+OpenButton.Size = UDim2.new(1, 0, 1, 0)
+OpenButton.Text = ">"
+OpenButton.TextColor3 = Color3.fromRGB(200, 200, 200)
+OpenButton.BackgroundTransparency = 1
+OpenButton.Parent = OpenTab
+
+-- ===== SETTINGS CONTROLS =====
+local ScrollFrame = Instance.new("ScrollingFrame")
+ScrollFrame.Name = "ScrollFrame"
+ScrollFrame.Size = UDim2.new(1, -10, 1, -40)
+ScrollFrame.Position = UDim2.new(0, 5, 0, 35)
+ScrollFrame.CanvasSize = UDim2.new(0, 0, 0, 400)
+ScrollFrame.BackgroundTransparency = 1
+ScrollFrame.Parent = MainFrame
+
+-- Auto Task Toggle
+local AutoTaskLabel = Instance.new("TextLabel")
+AutoTaskLabel.Text = "Auto Tasks:"
+AutoTaskLabel.TextColor3 = Color3.fromRGB(255, 255, 255)
+AutoTaskLabel.Size = UDim2.new(0.4, 0, 0, 25)
+AutoTaskLabel.Position = UDim2.new(0, 0, 0, 5)
+AutoTaskLabel.BackgroundTransparency = 1
+AutoTaskLabel.Parent = ScrollFrame
+
+local AutoTaskToggle = Instance.new("TextButton")
+AutoTaskToggle.Name = "AutoTaskToggle"
+AutoTaskToggle.Text = "OFF"
+AutoTaskToggle.TextColor3 = Color3.fromRGB(255, 50, 50)
+AutoTaskToggle.Size = UDim2.new(0.2, 0, 0, 25)
+AutoTaskToggle.Position = UDim2.new(0.4, 0, 0, 5)
+AutoTaskToggle.BackgroundColor3 = Color3.fromRGB(60, 60, 60)
+AutoTaskToggle.Parent = ScrollFrame
+
+-- Fully Grown Handling
+local GrownLabel = Instance.new("TextLabel")
+GrownLabel.Text = "Fully Grown:"
+GrownLabel.TextColor3 = Color3.fromRGB(255, 255, 255)
+GrownLabel.Size = UDim2.new(0.6, 0, 0, 25)
+GrownLabel.Position = UDim2.new(0, 0, 0, 35)
+GrownLabel.BackgroundTransparency = 1
+GrownLabel.Parent = ScrollFrame
+
+local GrownDropdown = Instance.new("TextButton")
+GrownDropdown.Name = "GrownDropdown"
+GrownDropdown.Text = "Random Pet"
+GrownDropdown.TextColor3 = Color3.fromRGB(200, 200, 255)
+GrownDropdown.Size = UDim2.new(0.8, 0, 0, 25)
+GrownDropdown.Position = UDim2.new(0.2, 0, 0, 35)
+GrownDropdown.BackgroundColor3 = Color3.fromRGB(70, 70, 90)
+GrownDropdown.Parent = ScrollFrame
+
+-- Specific Pet Selection
+local PetLabel = Instance.new("TextLabel")
+PetLabel.Text = "Select Pet:"
+PetLabel.TextColor3 = Color3.fromRGB(255, 255, 255)
+PetLabel.Size = UDim2.new(0.6, 0, 0, 25)
+PetLabel.Position = UDim2.new(0, 0, 0, 65)
+PetLabel.BackgroundTransparency = 1
+PetLabel.Visible = false
+PetLabel.Parent = ScrollFrame
+
+local PetDropdown = Instance.new("TextButton")
+PetDropdown.Name = "PetDropdown"
+PetDropdown.Text = "Choose Pet"
+PetDropdown.TextColor3 = Color3.fromRGB(200, 200, 255)
+PetDropdown.Size = UDim2.new(0.8, 0, 0, 25)
+PetDropdown.Position = UDim2.new(0.2, 0, 0, 65)
+PetDropdown.BackgroundColor3 = Color3.fromRGB(70, 70, 90)
+PetDropdown.Visible = false
+PetDropdown.Parent = ScrollFrame
+
+-- Status Display
+local StatusLabel = Instance.new("TextLabel")
+StatusLabel.Text = "Status: Inactive"
+StatusLabel.TextColor3 = Color3.fromRGB(150, 255, 150)
+StatusLabel.Size = UDim2.new(1, 0, 0, 25)
+StatusLabel.Position = UDim2.new(0, 0, 0, 200)
+StatusLabel.BackgroundTransparency = 1
+StatusLabel.Parent = ScrollFrame
+
+-- ===== CORE FUNCTIONALITY =====
+local Settings = {
+    AutoTasks = false,
+    GrownOption = "Random",
+    SelectedPet = ""
+}
+
+-- GUI Interaction Functions
+CloseButton.MouseButton1Click:Connect(function()
+    MainFrame.Visible = false
+    OpenTab.Visible = true
+end)
+
+OpenButton.MouseButton1Click:Connect(function()
+    MainFrame.Visible = true
+    OpenTab.Visible = false
+end)
+
+AutoTaskToggle.MouseButton1Click:Connect(function()
+    Settings.AutoTasks = not Settings.AutoTasks
+    AutoTaskToggle.Text = Settings.AutoTasks and "ON" or "OFF"
+    AutoTaskToggle.TextColor3 = Settings.AutoTasks and Color3.fromRGB(50, 255, 50) or Color3.fromRGB(255, 50, 50)
+end)
+
+GrownDropdown.MouseButton1Click:Connect(function()
+    if Settings.GrownOption == "Random" then
+        Settings.GrownOption = "Specific"
+        GrownDropdown.Text = "Specific Pet"
+    else
+        Settings.GrownOption = "Random"
+        GrownDropdown.Text = "Random Pet"
+    end
+    PetLabel.Visible = (Settings.GrownOption == "Specific")
+    PetDropdown.Visible = (Settings.GrownOption == "Specific")
+end)
+
+PetDropdown.MouseButton1Click:Connect(function()
+    -- In a real implementation, you would populate this with the player's pets
+    -- This is simplified for demonstration
+    Settings.SelectedPet = "Dragon" -- Would be selected from list
+    PetDropdown.Text = "Dragon"
+end)
+
+-- Task Automation Functions
+function GetCurrentPet()
+    -- Simplified - real implementation would detect equipped pet
+    return {
+        Name = "CurrentPet",
+        FullyGrown = false,
+        Needs = {
+            Hunger = math.random(0, 100),
+            Thirst = math.random(0, 100),
+            Fun = math.random(0, 100),
+            Hygiene = math.random(0, 100),
+            Sleep = math.random(0, 100)
+        }
+    }
+end
+
+function PerformTask(taskName)
+    StatusLabel.Text = "Performing: "..taskName
+    -- Actual game interactions would go here:
+    -- 1. Find task item in inventory
+    -- 2. Click to select
+    -- 3. Click on pet
+    wait(2)
+end
+
+function HandleFullyGrown()
+    if Settings.GrownOption == "Random" then
+        StatusLabel.Text = "Switching to random pet"
+        -- SwitchPet(randomPet)
+    else
+        if Settings.SelectedPet ~= "" then
+            StatusLabel.Text = "Switching to "..Settings.SelectedPet
+            -- SwitchPet(Settings.SelectedPet)
+        end
+    end
+end
+
+-- Main Automation Loop
+spawn(function()
+    while true do
+        wait(5)
+        if Settings.AutoTasks then
+            local pet = GetCurrentPet()
+            
+            if pet.FullyGrown then
+                HandleFullyGrown()
+            else
+                if pet.Needs.Hunger < 30 then
+                    PerformTask("Feeding")
+                end
+                if pet.Needs.Thirst < 30 then
+                    PerformTask("Watering")
+                end
+                if pet.Needs.Fun < 30 then
+                    PerformTask("Playing")
+                end
+                if pet.Needs.Hygiene < 30 then
+                    PerformTask("Cleaning")
+                end
+                if pet.Needs.Sleep < 30 then
+                    PerformTask("Sleeping")
+                end
+            end
+            StatusLabel.Text = "Active - Last action: "..os.date("%X")
+        end
+    end
+end)
+
+-- Initialization
+StatusLabel.Text = "GUI Loaded Successfully"
+print("Adopt Me Auto Tasks GUI Initialized")
