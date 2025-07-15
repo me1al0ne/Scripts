@@ -1,0 +1,610 @@
+local TweenService = game:GetService("TweenService")
+local UIS = game:GetService("UserInputService")
+local RunService = game:GetService("RunService")
+local Players = game:GetService("Players")
+local Player = Players.LocalPlayer
+local Workspace = game:GetService("Workspace")
+
+-- Updated color scheme
+local mainColor = Color3.fromRGB(0, 170, 255)
+local hoverColor = Color3.fromRGB(0, 200, 255)
+local strokeColor = Color3.fromRGB(0, 100, 200)
+local bgColor = Color3.fromRGB(20, 20, 30)
+local titleBarColor = Color3.fromRGB(30, 30, 40)
+
+-- Create main GUI
+local ScreenGui = Instance.new("ScreenGui")
+ScreenGui.Name = "StxrHub"
+ScreenGui.ZIndexBehavior = Enum.ZIndexBehavior.Sibling
+ScreenGui.IgnoreGuiInset = true
+ScreenGui.DisplayOrder = 999
+ScreenGui.Parent = Player:WaitForChild("PlayerGui")
+
+-- Make GUI persistent through respawns
+Player.CharacterAdded:Connect(function()
+    if not ScreenGui.Parent then
+        ScreenGui.Parent = Player:WaitForChild("PlayerGui")
+    end
+end)
+
+local Frame = Instance.new("Frame")
+Frame.Parent = ScreenGui
+Frame.BackgroundColor3 = bgColor
+Frame.BorderSizePixel = 0
+Frame.AnchorPoint = Vector2.new(0.5, 0.5)
+Frame.Position = UDim2.new(0.5, 0, 0.5, 0)
+Frame.Size = UDim2.new(0, 0, 0, 0)
+Frame.ClipsDescendants = true
+Frame.BackgroundTransparency = 1
+
+local UICorner = Instance.new("UICorner")
+UICorner.CornerRadius = UDim.new(0, 8)
+UICorner.Parent = Frame
+
+local TitleBar = Instance.new("Frame")
+TitleBar.Name = "TitleBar"
+TitleBar.Parent = Frame
+TitleBar.BackgroundColor3 = titleBarColor
+TitleBar.BorderSizePixel = 0
+TitleBar.Size = UDim2.new(1, 0, 0, 30)
+TitleBar.ZIndex = 2
+
+local TitleBarCorner = Instance.new("UICorner")
+TitleBarCorner.CornerRadius = UDim.new(0, 8)
+TitleBarCorner.Parent = TitleBar
+
+local TitleLabel = Instance.new("TextLabel")
+TitleLabel.Name = "Title"
+TitleLabel.Parent = TitleBar
+TitleLabel.BackgroundTransparency = 1
+TitleLabel.Size = UDim2.new(1, -60, 1, 0)
+TitleLabel.Position = UDim2.new(0, 10, 0, 0)
+TitleLabel.Font = Enum.Font.GothamBold
+TitleLabel.Text = "STXR HUB"
+TitleLabel.TextColor3 = Color3.fromRGB(0, 200, 255)
+TitleLabel.TextSize = 16
+TitleLabel.TextXAlignment = Enum.TextXAlignment.Left
+TitleLabel.TextTransparency = 1
+
+local ButtonFrame = Instance.new("Frame")
+ButtonFrame.Parent = TitleBar
+ButtonFrame.BackgroundTransparency = 1
+ButtonFrame.Size = UDim2.new(0, 60, 1, 0)
+ButtonFrame.Position = UDim2.new(1, -60, 0, 0)
+
+local MinimizeButton = Instance.new("TextButton")
+MinimizeButton.Name = "MinimizeButton"
+MinimizeButton.Parent = ButtonFrame
+MinimizeButton.AnchorPoint = Vector2.new(0.5, 0.5)
+MinimizeButton.BackgroundTransparency = 1
+MinimizeButton.Position = UDim2.new(0.5, 0, 0.5, 0)
+MinimizeButton.Size = UDim2.new(0, 20, 0, 20)
+MinimizeButton.Font = Enum.Font.GothamBold
+MinimizeButton.Text = "—"
+MinimizeButton.TextColor3 = Color3.fromRGB(255, 204, 0)
+MinimizeButton.TextSize = 14
+MinimizeButton.TextTransparency = 1
+
+local Content = Instance.new("Frame")
+Content.Name = "Content"
+Content.Parent = Frame
+Content.BackgroundTransparency = 1
+Content.Position = UDim2.new(0, 0, 0, 30)
+Content.Size = UDim2.new(1, 0, 1, -30)
+
+-- Steal Button
+local StealButton = Instance.new("TextButton")
+StealButton.Name = "StealButton"
+StealButton.Parent = Content
+StealButton.BackgroundColor3 = mainColor
+StealButton.TextColor3 = Color3.fromRGB(255, 255, 255)
+StealButton.Position = UDim2.new(0.1, 0, 0.1, 0)
+StealButton.Size = UDim2.new(0.8, 0, 0, 30)
+StealButton.Font = Enum.Font.GothamSemibold
+StealButton.Text = "◇ STEAL ◇"
+StealButton.TextSize = 14
+StealButton.TextWrapped = true
+StealButton.TextTransparency = 1
+StealButton.AutoButtonColor = false
+
+local UICorner_Steal = Instance.new("UICorner")
+UICorner_Steal.CornerRadius = UDim.new(0, 8)
+UICorner_Steal.Parent = StealButton
+
+local StealStroke = Instance.new("UIStroke")
+StealStroke.Parent = StealButton
+StealStroke.Color = strokeColor
+StealStroke.Thickness = 1
+StealStroke.Transparency = 0.5
+
+-- TP Inside Button
+local TPInsideButton = Instance.new("TextButton")
+TPInsideButton.Name = "TPInsideButton"
+TPInsideButton.Parent = Content
+TPInsideButton.BackgroundColor3 = mainColor
+TPInsideButton.TextColor3 = Color3.fromRGB(255, 255, 255)
+TPInsideButton.Position = UDim2.new(0.1, 0, 0.3, 0)
+TPInsideButton.Size = UDim2.new(0.8, 0, 0, 30)
+TPInsideButton.Font = Enum.Font.GothamSemibold
+TPInsideButton.Text = "◇ TP INSIDE ◇"
+TPInsideButton.TextSize = 14
+TPInsideButton.TextWrapped = true
+TPInsideButton.TextTransparency = 1
+TPInsideButton.AutoButtonColor = false
+
+local UICorner_TPInside = Instance.new("UICorner")
+UICorner_TPInside.CornerRadius = UDim.new(0, 8)
+UICorner_TPInside.Parent = TPInsideButton
+
+local TPInsideStroke = Instance.new("UIStroke")
+TPInsideStroke.Parent = TPInsideButton
+TPInsideStroke.Color = strokeColor
+TPInsideStroke.Thickness = 1
+TPInsideStroke.Transparency = 0.5
+
+-- ESP Toggle Button
+local ESPToggleButton = Instance.new("TextButton")
+ESPToggleButton.Name = "ESPToggleButton"
+ESPToggleButton.Parent = Content
+ESPToggleButton.BackgroundColor3 = mainColor
+ESPToggleButton.TextColor3 = Color3.fromRGB(255, 255, 255)
+ESPToggleButton.Position = UDim2.new(0.1, 0, 0.5, 0)
+ESPToggleButton.Size = UDim2.new(0.8, 0, 0, 30)
+ESPToggleButton.Font = Enum.Font.GothamSemibold
+ESPToggleButton.Text = "◇ PLAYER ESP ◇"
+ESPToggleButton.TextSize = 14
+ESPToggleButton.TextWrapped = true
+ESPToggleButton.TextTransparency = 1
+ESPToggleButton.AutoButtonColor = false
+
+local UICorner_ESPToggle = Instance.new("UICorner")
+UICorner_ESPToggle.CornerRadius = UDim.new(0, 8)
+UICorner_ESPToggle.Parent = ESPToggleButton
+
+local ESPToggleStroke = Instance.new("UIStroke")
+ESPToggleStroke.Parent = ESPToggleButton
+ESPToggleStroke.Color = strokeColor
+ESPToggleStroke.Thickness = 1
+ESPToggleStroke.Transparency = 0.5
+
+-- Lock ESP Toggle Button
+local LockESPToggleButton = Instance.new("TextButton")
+LockESPToggleButton.Name = "LockESPToggleButton"
+LockESPToggleButton.Parent = Content
+LockESPToggleButton.BackgroundColor3 = mainColor
+LockESPToggleButton.TextColor3 = Color3.fromRGB(255, 255, 255)
+LockESPToggleButton.Position = UDim2.new(0.1, 0, 0.7, 0)
+LockESPToggleButton.Size = UDim2.new(0.8, 0, 0, 30)
+LockESPToggleButton.Font = Enum.Font.GothamSemibold
+LockESPToggleButton.Text = "◇ LOCK ESP ◇"
+LockESPToggleButton.TextSize = 14
+LockESPToggleButton.TextWrapped = true
+LockESPToggleButton.TextTransparency = 1
+LockESPToggleButton.AutoButtonColor = false
+
+local UICorner_LockESPToggle = Instance.new("UICorner")
+UICorner_LockESPToggle.CornerRadius = UDim.new(0, 8)
+UICorner_LockESPToggle.Parent = LockESPToggleButton
+
+local LockESPToggleStroke = Instance.new("UIStroke")
+LockESPToggleStroke.Parent = LockESPToggleButton
+LockESPToggleStroke.Color = strokeColor
+LockESPToggleStroke.Thickness = 1
+LockESPToggleStroke.Transparency = 0.5
+
+-- Minimized Button
+local MinimizedButton = Instance.new("TextButton")
+MinimizedButton.Name = "MinimizedButton"
+MinimizedButton.Parent = ScreenGui
+MinimizedButton.BackgroundColor3 = titleBarColor
+MinimizedButton.TextColor3 = Color3.fromRGB(0, 200, 255)
+MinimizedButton.Size = UDim2.new(0, 40, 0, 40)
+MinimizedButton.Position = UDim2.new(0.5, 0, 0.5, 0)
+MinimizedButton.AnchorPoint = Vector2.new(0.5, 0.5)
+MinimizedButton.Font = Enum.Font.GothamBold
+MinimizedButton.Text = "S"
+MinimizedButton.TextSize = 18
+MinimizedButton.Visible = false
+MinimizedButton.AutoButtonColor = false
+
+local MinimizedUICorner = Instance.new("UICorner")
+MinimizedUICorner.CornerRadius = UDim.new(0, 8)
+MinimizedUICorner.Parent = MinimizedButton
+
+local MinimizedStroke = Instance.new("UIStroke")
+MinimizedStroke.Parent = MinimizedButton
+MinimizedStroke.Color = mainColor
+MinimizedStroke.Thickness = 2
+MinimizedStroke.Transparency = 0
+
+-- Hover effect function
+local function createHoverEffect(button, stroke)
+    button.MouseEnter:Connect(function()
+        TweenService:Create(button, TweenInfo.new(0.2, Enum.EasingStyle.Exponential), {
+            BackgroundColor3 = hoverColor,
+            TextColor3 = Color3.fromRGB(255, 255, 255)
+        }):Play()
+        TweenService:Create(stroke, TweenInfo.new(0.2, Enum.EasingStyle.Exponential), {
+            Color = Color3.fromRGB(0, 150, 255),
+            Thickness = 2,
+            Transparency = 0.2
+        }):Play()
+    end)
+    
+    button.MouseLeave:Connect(function()
+        TweenService:Create(button, TweenInfo.new(0.2, Enum.EasingStyle.Exponential), {
+            BackgroundColor3 = mainColor,
+            TextColor3 = Color3.fromRGB(255, 255, 255)
+        }):Play()
+        TweenService:Create(stroke, TweenInfo.new(0.2, Enum.EasingStyle.Exponential), {
+            Color = strokeColor,
+            Thickness = 1,
+            Transparency = 0.5
+        }):Play()
+    end)
+end
+
+createHoverEffect(StealButton, StealStroke)
+createHoverEffect(TPInsideButton, TPInsideStroke)
+createHoverEffect(ESPToggleButton, ESPToggleStroke)
+createHoverEffect(LockESPToggleButton, LockESPToggleStroke)
+createHoverEffect(MinimizedButton, MinimizedStroke)
+
+-- Animation on load
+task.wait(0.1)
+TweenService:Create(Frame, TweenInfo.new(0.6, Enum.EasingStyle.Back, Enum.EasingDirection.Out), {
+    Size = UDim2.new(0, 220, 0, 220),
+    BackgroundTransparency = 0
+}):Play()
+
+task.wait(0.2)
+TweenService:Create(TitleLabel, TweenInfo.new(0.4), {TextTransparency = 0}):Play()
+TweenService:Create(MinimizeButton, TweenInfo.new(0.4), {TextTransparency = 0}):Play()
+
+task.wait(0.1)
+TweenService:Create(StealButton, TweenInfo.new(0.4, Enum.EasingStyle.Exponential), {
+    TextTransparency = 0,
+    BackgroundTransparency = 0
+}):Play()
+TweenService:Create(StealStroke, TweenInfo.new(0.4, Enum.EasingStyle.Exponential), {Transparency = 0}):Play()
+
+TweenService:Create(TPInsideButton, TweenInfo.new(0.4, Enum.EasingStyle.Exponential), {
+    TextTransparency = 0,
+    BackgroundTransparency = 0
+}):Play()
+TweenService:Create(TPInsideStroke, TweenInfo.new(0.4, Enum.EasingStyle.Exponential), {Transparency = 0}):Play()
+
+TweenService:Create(ESPToggleButton, TweenInfo.new(0.4, Enum.EasingStyle.Exponential), {
+    TextTransparency = 0,
+    BackgroundTransparency = 0
+}):Play()
+TweenService:Create(ESPToggleStroke, TweenInfo.new(0.4, Enum.EasingStyle.Exponential), {Transparency = 0}):Play()
+
+TweenService:Create(LockESPToggleButton, TweenInfo.new(0.4, Enum.EasingStyle.Exponential), {
+    TextTransparency = 0,
+    BackgroundTransparency = 0
+}):Play()
+TweenService:Create(LockESPToggleStroke, TweenInfo.new(0.4, Enum.EasingStyle.Exponential), {Transparency = 0}):Play()
+
+-- Character setup and teleport functions
+local char, hrp
+local teleporting = false
+local random = Random.new()
+local tpAmt = 70 -- Default value
+
+local function setupCharacter()
+    char = Player.Character or Player.CharacterAdded:Wait()
+    hrp = char:WaitForChild("HumanoidRootPart")
+end
+
+setupCharacter()
+Player.CharacterAdded:Connect(setupCharacter)
+
+-- Calculate tpAmt from ping
+task.spawn(function()
+    while true do
+        local ping = Player:GetNetworkPing() * 1000
+        tpAmt = math.clamp(math.floor(ping * 0.8), 10, 150)
+        RunService.Heartbeat:Wait()
+    end
+end)
+
+local function TP(position)
+    if not teleporting and hrp then
+        teleporting = true
+        hrp.CFrame = position + Vector3.new(
+            random:NextNumber(-0.0001, 0.0001),
+            random:NextNumber(-0.0001, 0.0001),
+            random:NextNumber(-0.0001, 0.0001)
+        )
+        RunService.Heartbeat:Wait()
+        teleporting = false
+    end
+end
+
+-- Fixed TP Inside function
+local function TPInside()
+    if not hrp then return end
+    
+    local currentCF = hrp.CFrame
+    local forwardVector = currentCF.LookVector
+    local targetPos = currentCF.Position + (forwardVector * 10)
+    local targetCF = CFrame.new(targetPos, targetPos + forwardVector)
+    
+    -- Perform multiple small teleports
+    for i = 1, (tpAmt or 70) do
+        TP(targetCF)
+        task.wait()
+    end
+end
+
+-- Steal function
+local function TweenSteal()
+    if not hrp then return end
+    
+    local TELEPORT_ITERATIONS = 85
+    local VOID_CFRAME = CFrame.new(0, -3e40, 0)
+    
+    local function findDeliverySpot()
+        for _, v in ipairs(Workspace.Plots:GetDescendants()) do
+            if v.Name == "DeliveryHitbox" and v.Parent:FindFirstChild("PlotSign") then
+                if v.Parent.PlotSign:FindFirstChild("YourBase") and v.Parent.PlotSign.YourBase.Enabled then
+                    return v
+                end
+            end
+        end
+        return nil
+    end
+    
+    local delivery = findDeliverySpot()
+    if not delivery then return end
+    
+    local targetPos = delivery.CFrame * CFrame.new(0, random:NextInteger(-3, -1), 0)
+    
+    for _ = 1, 3 do
+        task.spawn(function()
+            for i = 1, TELEPORT_ITERATIONS do
+                TP(targetPos)
+                task.wait()
+            end
+            
+            for _ = 1, 3 do
+                TP(VOID_CFRAME)
+                task.wait(0.1)
+                TP(targetPos)
+                task.wait(0.1)
+            end
+        end)
+    end
+end
+
+-- Button connections
+StealButton.MouseButton1Click:Connect(TweenSteal)
+TPInsideButton.MouseButton1Click:Connect(TPInside)
+
+-- ESP Systems
+local PlayerESP = {}
+local LockESP = {}
+local PlayerESPEnabled = false
+local LockESPEnabled = false
+
+-- Player ESP Functions
+local function CreatePlayerESP(player)
+    if player == Player then return end
+    if PlayerESP[player] then return end
+    
+    local character = player.Character or player.CharacterAdded:Wait()
+    local humanoidRootPart = character:WaitForChild("HumanoidRootPart")
+    
+    local billboard = Instance.new("BillboardGui")
+    billboard.Name = "StxrPlayerESP"
+    billboard.Adornee = humanoidRootPart
+    billboard.Size = UDim2.new(0, 200, 0, 50)
+    billboard.StudsOffset = Vector3.new(0, 3, 0)
+    billboard.AlwaysOnTop = true
+    billboard.MaxDistance = 1000
+    billboard.Parent = character
+    
+    local textLabel = Instance.new("TextLabel")
+    textLabel.Name = "PlayerName"
+    textLabel.BackgroundTransparency = 1
+    textLabel.Size = UDim2.new(1, 0, 1, 0)
+    textLabel.Font = Enum.Font.GothamBold
+    textLabel.Text = player.Name
+    textLabel.TextColor3 = Color3.fromRGB(0, 150, 255)
+    textLabel.TextSize = 20
+    textLabel.TextStrokeTransparency = 0.5
+    textLabel.TextStrokeColor3 = Color3.fromRGB(0, 0, 0)
+    textLabel.Parent = billboard
+    
+    PlayerESP[player] = billboard
+    
+    player.CharacterAdded:Connect(function(newChar)
+        if PlayerESP[player] then
+            PlayerESP[player]:Destroy()
+            PlayerESP[player] = nil
+        end
+        CreatePlayerESP(player)
+    end)
+end
+
+local function TogglePlayerESP()
+    PlayerESPEnabled = not PlayerESPEnabled
+    
+    if PlayerESPEnabled then
+        -- Create ESP for existing players
+        for _, player in ipairs(Players:GetPlayers()) do
+            CreatePlayerESP(player)
+        end
+        
+        -- Connect to new players
+        Players.PlayerAdded:Connect(CreatePlayerESP)
+    else
+        -- Destroy all ESP
+        for player, esp in pairs(PlayerESP) do
+            if esp then
+                esp:Destroy()
+            end
+        end
+        PlayerESP = {}
+    end
+end
+
+-- Lock ESP Functions
+local function CreateLockESP(lock)
+    if LockESP[lock] then return end
+    
+    local billboard = Instance.new("BillboardGui")
+    billboard.Name = "StxrLockESP"
+    billboard.Adornee = lock
+    billboard.Size = UDim2.new(0, 300, 0, 60)
+    billboard.StudsOffset = Vector3.new(0, 5, 0)
+    billboard.AlwaysOnTop = true
+    billboard.MaxDistance = 1000
+    billboard.Parent = lock
+    
+    local textLabel = Instance.new("TextLabel")
+    textLabel.Name = "LockText"
+    textLabel.BackgroundTransparency = 1
+    textLabel.Size = UDim2.new(1, 0, 1, 0)
+    textLabel.Font = Enum.Font.GothamBold
+    textLabel.Text = "LOCKED"
+    textLabel.TextColor3 = Color3.fromRGB(255, 50, 50)
+    textLabel.TextSize = 28
+    textLabel.TextStrokeTransparency = 0.3
+    textLabel.TextStrokeColor3 = Color3.fromRGB(0, 0, 0)
+    textLabel.Parent = billboard
+    
+    LockESP[lock] = billboard
+    
+    -- Update lock timer
+    coroutine.wrap(function()
+        while LockESP[lock] and LockESPEnabled do
+            if lock:FindFirstChild("LockTime") then
+                local timeLeft = math.floor(lock.LockTime.Value - os.time())
+                if timeLeft > 0 then
+                    textLabel.Text = "LOCK: "..timeLeft.."s"
+                else
+                    textLabel.Text = "UNLOCKED"
+                end
+            end
+            task.wait(0.5)
+        end
+    end)()
+end
+
+local function FindLocks()
+    for _, plot in ipairs(Workspace.Plots:GetChildren()) do
+        local lock = plot:FindFirstChild("Lock")
+        if lock and lock:IsA("BasePart") then
+            CreateLockESP(lock)
+        end
+    end
+end
+
+local function ToggleLockESP()
+    LockESPEnabled = not LockESPEnabled
+    
+    if LockESPEnabled then
+        FindLocks()
+    else
+        for lock, esp in pairs(LockESP) do
+            if esp then
+                esp:Destroy()
+            end
+        end
+        LockESP = {}
+    end
+end
+
+-- ESP Button connections
+ESPToggleButton.MouseButton1Click:Connect(TogglePlayerESP)
+LockESPToggleButton.MouseButton1Click:Connect(ToggleLockESP)
+
+-- Minimize functionality
+local isMinimized = false
+local originalSize = UDim2.new(0, 220, 0, 220)
+
+MinimizeButton.MouseButton1Click:Connect(function()
+    isMinimized = true
+    
+    TweenService:Create(Frame, TweenInfo.new(0.4, Enum.EasingStyle.Exponential), {
+        Size = UDim2.new(0, 0, 0, 0),
+        BackgroundTransparency = 1
+    }):Play()
+    
+    task.wait(0.4)
+    Frame.Visible = false
+    MinimizedButton.Visible = true
+    MinimizedButton.Position = Frame.Position
+end)
+
+MinimizedButton.MouseButton1Click:Connect(function()
+    isMinimized = false
+    MinimizedButton.Visible = false
+    Frame.Visible = true
+    
+    TweenService:Create(Frame, TweenInfo.new(0.4, Enum.EasingStyle.Back, Enum.EasingDirection.Out), {
+        Size = originalSize,
+        BackgroundTransparency = 0
+    }):Play()
+end)
+
+-- Dragging functionality
+local dragging = false
+local dragInput, dragStart, startPos
+
+local function StartDragging(input)
+    if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
+        dragging = true
+        dragStart = input.Position
+        startPos = Frame.Position
+        
+        input.Changed:Connect(function()
+            if input.UserInputState == Enum.UserInputState.End then
+                dragging = false
+            end
+        end)
+    end
+end
+
+local function UpdateDragging(input)
+    if dragging and input == dragInput then
+        local delta = input.Position - dragStart
+        local newPos = UDim2.new(
+            startPos.X.Scale,
+            startPos.X.Offset + delta.X,
+            startPos.Y.Scale,
+            startPos.Y.Offset + delta.Y
+        )
+        Frame.Position = newPos
+        MinimizedButton.Position = newPos
+    end
+end
+
+TitleBar.InputBegan:Connect(StartDragging)
+TitleBar.InputChanged:Connect(function(input)
+    if input.UserInputType == Enum.UserInputType.MouseMovement or input.UserInputType == Enum.UserInputType.Touch then
+        dragInput = input
+    end
+end)
+
+MinimizedButton.InputBegan:Connect(StartDragging)
+MinimizedButton.InputChanged:Connect(function(input)
+    if input.UserInputType == Enum.UserInputType.MouseMovement or input.UserInputType == Enum.UserInputType.Touch then
+        dragInput = input
+    end
+end)
+
+UIS.InputChanged:Connect(UpdateDragging)
+
+-- GUI toggle
+local isGuiVisible = true
+UIS.InputBegan:Connect(function(input, gameProcessedEvent)
+    if gameProcessedEvent then return end
+    if input.KeyCode == Enum.KeyCode.RightShift then
+        isGuiVisible = not isGuiVisible
+        Frame.Visible = isGuiVisible and not isMinimized
+        MinimizedButton.Visible = isGuiVisible and isMinimized
+    end
+end)
