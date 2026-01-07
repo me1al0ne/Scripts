@@ -1,0 +1,376 @@
+-- ESP + CamLock LocalScript (for use in your own game / admin tools)
+-- Place in StarterPlayer > StarterPlayerScripts
+-- Everyone can use this tool
+
+local Players = game:GetService("Players")
+local RunService = game:GetService("RunService")
+local UserInputService = game:GetService("UserInputService")
+local TweenService = game:GetService("TweenService")
+local LocalPlayer = Players.LocalPlayer
+local Camera = workspace.CurrentCamera
+
+-- utility: get torso/primary part safely
+local function getTorsoCharacter(char)
+    if not char then return nil end
+    return char:FindFirstChild("HumanoidRootPart")
+        or char:FindFirstChild("UpperTorso")
+        or char:FindFirstChild("Torso")
+        or char.PrimaryPart
+end
+
+-- GUI setup (ScreenGui with a movable toggle button)
+local screenGui = Instance.new("ScreenGui")
+screenGui.Name = "AdminESP_GUI"
+screenGui.ResetOnSpawn = false
+screenGui.Parent = LocalPlayer:WaitForChild("PlayerGui")
+
+local function makeDraggable(button)
+    local dragging = false
+    local dragInput, dragStart, startPos
+
+    local function update(input)
+        local delta = input.Position - dragStart
+        button.Position = UDim2.new(startPos.X.Scale, startPos.X.Offset + delta.X,
+                                    startPos.Y.Scale, startPos.Y.Offset + delta.Y)
+    end
+
+    button.InputBegan:Connect(function(input)
+        if input.UserInputType == Enum.UserInputType.MouseButton1 or
+           input.UserInputType == Enum.UserInputType.Touch then
+            dragging = true
+            dragStart = input.Position
+            startPos = button.Position
+            dragInput = input
+            input.Changed:Connect(function()
+                if input.UserInputState == Enum.UserInputState.End then
+                    dragging = false
+                end
+            end)
+        end
+    end)
+
+    button.InputChanged:Connect(function(input)
+        if input == dragInput and dragging then
+            update(input)
+        end
+    end)
+
+    UserInputService.InputChanged:Connect(function(input)
+        if input == dragInput and dragging then
+            update(input)
+        end
+    end)
+end
+
+local toggleButton = Instance.new("TextButton")
+toggleButton.Name = "CamLockToggle"
+toggleButton.Size = UDim2.new(0, 110, 0, 42)
+toggleButton.Position = UDim2.new(0.02, 0, 0.8, 0)
+toggleButton.Text = "CamLock: Off"
+toggleButton.AutoButtonColor = true
+toggleButton.Parent = screenGui
+
+makeDraggable(toggleButton)
+
+-- Data structures
+local tracked = {} -- tracked[player] = {billboard = ..., highlight = ..., char = ...}
+local lockedTarget = nil
+local camLocked = false
+
+-- Raycast visibility check: returns true if camera sees targetPart (first hit is in target character)
+local RaycastParams = RaycastParams.new()
+RaycastParams.FilterType = Enum.RaycastFilterType.Blacklist
+
+local function isPartVisibleToCamera(targetPart, targetCharacter)
+    if not targetPart or not targetCharacter then return false end
+    local origin = Camera.CFrame.Position
+    local direction = (targetPart.Position - origin)
+    if direction.Magnitude <= 0.001 then return true end
+
+    -- ignore local player's character so our own body doesn't block view
+    local localChar = LocalPlayer.Character
+    if localChar then
+        RaycastParams.FilterDescendantsInstances = {localChar}
+    else
+        RaycastParams.FilterDescendantsInstances = {}
+    end
+
+    local result = workspace:Raycast(origin, direction, RaycastParams)
+    if not result then
+        -- no hit (rare) - consider visible
+        return true
+    end
+    local hitPart = result.Instance
+    if hitPart and hitPart:IsDescendantOf(targetCharacter) then
+        return true
+    end
+    return false
+end
+
+-- create ESP elements for a player's character
+local function createESPForPlayer(player)
+    if not player then return end
+    local char = player.Character
+    if not char then return end
+
+    local root = getTorsoCharacter(char)
+    if not root then return end
+
+    -- BillboardGui
+    local billboard = Instance.new("BillboardGui")
+    billboard.Name = "AdminESP_Billboard"
+    billboard.Adornee = root
+    billboard.Size = UDim2.new(0, 180, 0, 58)
+    billboard.StudsOffset = Vector3.new(0, 2.6, 0)
+    billboard.AlwaysOnTop = true
+    billboard.Parent = screenGui -- parent to PlayerGui so it's local only
+
+    local frame = Instance.new("Frame", billboard)
+    frame.Size = UDim2.new(1, 0, 1, 0)
+    frame.BackgroundTransparency = 0.35
+    frame.BorderSizePixel = 0
+
+    local nameLabel = Instance.new("TextLabel", frame)
+    nameLabel.Size = UDim2.new(1, -8, 0, 18)
+    nameLabel.Position = UDim2.new(0, 4, 0, 2)
+    nameLabel.Text = player.Name
+    nameLabel.TextScaled = true
+    nameLabel.BackgroundTransparency = 1
+    nameLabel.TextStrokeTransparency = 0.6
+    nameLabel.TextColor3 = Color3.new(1,1,1)
+
+    local infoLabel = Instance.new("TextLabel", frame)
+    infoLabel.Size = UDim2.new(1, -8, 0, 36)
+    infoLabel.Position = UDim2.new(0, 4, 0, 20)
+    infoLabel.Text = "HP: ?  Dist: ?  Visible: ?"
+    infoLabel.TextWrapped = true
+    infoLabel.TextScaled = true
+    infoLabel.BackgroundTransparency = 1
+    infoLabel.TextStrokeTransparency = 0.8
+    infoLabel.TextColor3 = Color3.new(1,1,1)
+
+    -- Highlight instance (local)
+    local highlight = Instance.new("Highlight")
+    highlight.Name = "AdminESP_Highlight"
+    highlight.Parent = char
+    highlight.Adornee = char
+    highlight.Enabled = true
+    highlight.DepthMode = Enum.HighlightDepthMode.Occluded -- choose style you prefer
+
+    -- store
+    tracked[player] = {
+        billboard = billboard,
+        nameLabel = nameLabel,
+        infoLabel = infoLabel,
+        highlight = highlight,
+        char = char,
+    }
+end
+
+local function removeESPForPlayer(player)
+    local t = tracked[player]
+    if not t then return end
+    if t.billboard and t.billboard.Parent then
+        t.billboard:Destroy()
+    end
+    if t.highlight and t.highlight.Parent then
+        t.highlight:Destroy()
+    end
+    tracked[player] = nil
+    if lockedTarget == player then
+        -- unlock if target left
+        lockedTarget = nil
+        camLocked = false
+        toggleButton.Text = "CamLock: Off"
+        Camera.CameraType = Enum.CameraType.Custom
+    end
+end
+
+-- update function runs every render step (or throttled)
+local updateInterval = 0.08
+local accumulator = 0
+local last = tick()
+
+RunService.RenderStepped:Connect(function()
+    local now = tick()
+    local dt = now - last
+    last = now
+    accumulator = accumulator + dt
+
+    -- camera lock handling each frame for smooth camera when locked
+    if camLocked and lockedTarget and lockedTarget.Character then
+        local char = lockedTarget.Character
+        local targetPart = getTorsoCharacter(char)
+        if targetPart then
+            -- set camera to follow target torso with an offset behind and above
+            Camera.CameraType = Enum.CameraType.Scriptable
+            local torsoCFrame = targetPart.CFrame
+            local offset = CFrame.new(0, 1.2, 4) * CFrame.Angles(math.rad(-8), 0, 0) -- behind
+            -- set camera behind the target (use target's look vector to compute behind)
+            local lookVector = torsoCFrame.LookVector
+            local desiredPos = torsoCFrame.Position - lookVector * 4 + Vector3.new(0, 1.2, 0)
+            Camera.CFrame = CFrame.lookAt(desiredPos, torsoCFrame.Position + Vector3.new(0, 1.2, 0))
+        end
+    elseif not camLocked then
+        -- ensure camera is default if not locked
+        if Camera.CameraType == Enum.CameraType.Scriptable then
+            Camera.CameraType = Enum.CameraType.Custom
+        end
+    end
+
+    if accumulator >= updateInterval then
+        accumulator = accumulator - updateInterval
+
+        -- iterate players and update their ESP info
+        for player, data in pairs(tracked) do
+            local char = player.Character
+            if not char or not char.Parent then
+                removeESPForPlayer(player)
+            else
+                local root = getTorsoCharacter(char)
+                local humanoid = char:FindFirstChildWhichIsA("Humanoid")
+                if root and data.infoLabel then
+                    -- distance
+                    local dist = (Camera.CFrame.Position - root.Position).Magnitude
+                    -- health
+                    local hp = humanoid and humanoid.Health or 0
+                    local maxHp = humanoid and humanoid.MaxHealth or 0
+                    local hpText = string.format("%.0f/%.0f", hp, maxHp)
+                    -- visibility
+                    local visible = isPartVisibleToCamera(root, char)
+                    data.infoLabel.Text = string.format("HP: %s  Dist: %.1f studs  Visible: %s", hpText, dist, visible and "Yes" or "No")
+
+                    -- toggle highlight color based on team or visibility if desired
+                    if data.highlight then
+                        -- keep highlight always on as requested; you may color by team:
+                        if visible then
+                            data.highlight.FillColor = Color3.fromRGB(0, 255, 0)
+                            data.highlight.OutlineColor = Color3.fromRGB(0, 200, 0)
+                        else
+                            data.highlight.FillColor = Color3.fromRGB(255, 200, 0)
+                            data.highlight.OutlineColor = Color3.fromRGB(200, 160, 0)
+                        end
+                        data.highlight.Enabled = true
+                    end
+                end
+            end
+        end
+    end
+end)
+
+-- handlers for players joining / leaving / respawning
+local function onCharacterAdded(player, char)
+    -- small delay to ensure parts exist
+    wait(0.05)
+    -- remove existing ESP if stale
+    if tracked[player] then
+        removeESPForPlayer(player)
+    end
+    createESPForPlayer(player)
+
+    -- monitor when humanoid dies to unlock camera if locked on to a dead player
+    local humanoid = char:FindFirstChildWhichIsA("Humanoid")
+    if humanoid then
+        humanoid.Died:Connect(function()
+            if lockedTarget == player then
+                lockedTarget = nil
+                camLocked = false
+                toggleButton.Text = "CamLock: Off"
+                Camera.CameraType = Enum.CameraType.Custom
+            end
+        end)
+    end
+end
+
+local function onPlayerAdded(player)
+    player.CharacterAdded:Connect(function(char) onCharacterAdded(player, char) end)
+    if player.Character then
+        onCharacterAdded(player, player.Character)
+    end
+end
+
+local function onPlayerRemoving(player)
+    removeESPForPlayer(player)
+end
+
+-- initialise existing players (except local player)
+for _, pl in ipairs(Players:GetPlayers()) do
+    if pl ~= LocalPlayer then
+        onPlayerAdded(pl)
+    end
+end
+
+Players.PlayerAdded:Connect(function(pl)
+    if pl ~= LocalPlayer then
+        onPlayerAdded(pl)
+    end
+end)
+
+Players.PlayerRemoving:Connect(onPlayerRemoving)
+
+-- CamLock toggle behavior:
+local function findNearestVisiblePlayer()
+    local nearest, nearestDist = nil, math.huge
+    for pl, data in pairs(tracked) do
+        if pl and pl.Character and pl.Character.Parent then
+            local torso = getTorsoCharacter(pl.Character)
+            if torso and isPartVisibleToCamera(torso, pl.Character) then
+                local d = (Camera.CFrame.Position - torso.Position).Magnitude
+                if d < nearestDist then
+                    nearest = pl
+                    nearestDist = d
+                end
+            end
+        end
+    end
+    return nearest
+end
+
+toggleButton.MouseButton1Click:Connect(function()
+    if not camLocked then
+        -- attempt to lock onto nearest visible player
+        local target = findNearestVisiblePlayer()
+        if target then
+            lockedTarget = target
+            camLocked = true
+            toggleButton.Text = "CamLock: On (" .. target.Name .. ")"
+            -- once locked, camera will remain even if target becomes occluded, until death or manual unlock
+        else
+            -- feedback: no visible players found - quick flash
+            toggleButton.Text = "No visible players"
+            delay(1.0, function()
+                if camLocked and lockedTarget then
+                    toggleButton.Text = "CamLock: On (" .. lockedTarget.Name .. ")"
+                else
+                    toggleButton.Text = "CamLock: Off"
+                end
+            end)
+        end
+    else
+        camLocked = false
+        lockedTarget = nil
+        toggleButton.Text = "CamLock: Off"
+        Camera.CameraType = Enum.CameraType.Custom
+    end
+end)
+
+-- Optional: allow touch input to toggle (mobile)
+if UserInputService.TouchEnabled then
+    toggleButton.TouchTap:Connect(function()
+        toggleButton:CaptureFocus() -- to ensure click triggers
+        toggleButton:ReleaseFocus()
+        toggleButton:MouseButton1Click()
+    end)
+end
+
+-- Cleanup on script destroy
+script.AncestryChanged:Connect(function()
+    if not script:IsDescendantOf(game) then
+        for p, _ in pairs(tracked) do
+            removeESPForPlayer(p)
+        end
+        if screenGui and screenGui.Parent then screenGui:Destroy() end
+    end
+end)
+
+-- End of script
