@@ -1,5 +1,5 @@
--- Mobile ESP Script with Camera Lock
--- Place this in StarterPlayerScripts
+-- Mobile ESP & Camlock for Executors
+-- Copy and paste this entire script into your executor
 
 -- Services
 local Players = game:GetService("Players")
@@ -12,50 +12,54 @@ local TweenService = game:GetService("TweenService")
 local LocalPlayer = Players.LocalPlayer
 local Camera = Workspace.CurrentCamera
 
--- ESP Settings
+-- Settings
 local ESP_ENABLED = true
-local TRACK_ALL_PLAYERS = false -- Set to true to track everyone, false for enemies only
-local MAX_DISTANCE = 500 -- Max distance to show ESP
-local REFRESH_RATE = 0.1 -- Update rate in seconds
+local SHOW_TEAMMATES = false -- Set to true to show teammates too
+local MAX_DISTANCE = 1000
+local REFRESH_RATE = 0.1
 
--- Camera Lock Settings
-local CAMERA_LOCK_ENABLED = false
+-- Camera Lock
+local CAMERA_LOCK = false
 local LOCKED_PLAYER = nil
 local LOCKED_CHARACTER = nil
-local AUTO_LOCK_RANGE = 100 -- Studs
-local SMOOTHNESS = 0.2 -- Camera smoothness (0-1)
+local LOCK_RANGE = 200
+local SMOOTHNESS = 0.15
 
--- UI Setup
+-- ESP Storage
+local ESPData = {}
+local ESPColor = Color3.fromRGB(255, 0, 0)
+local ESPColorVisible = Color3.fromRGB(0, 255, 0)
+local TeamColor = Color3.fromRGB(0, 100, 255)
+
+-- UI
 local ScreenGui = Instance.new("ScreenGui")
-ScreenGui.Name = "MobileESP"
-ScreenGui.ResetOnSpawn = false
-ScreenGui.ZIndexBehavior = Enum.ZIndexBehavior.Sibling
+ScreenGui.Name = "ExecutorESP"
+ScreenGui.Parent = game.CoreGui or LocalPlayer:WaitForChild("PlayerGui")
 
--- Toggle Button for Camera Lock
-local ToggleButton = Instance.new("TextButton")
-ToggleButton.Name = "CameraLockToggle"
-ToggleButton.Size = UDim2.new(0, 100, 0, 50)
-ToggleButton.Position = UDim2.new(0.8, 0, 0.8, 0)
-ToggleButton.BackgroundColor3 = Color3.fromRGB(30, 30, 30)
-ToggleButton.BackgroundTransparency = 0.3
-ToggleButton.TextColor3 = Color3.fromRGB(255, 255, 255)
-ToggleButton.Text = "🔒\nLock Off"
-ToggleButton.TextSize = 14
-ToggleButton.BorderSizePixel = 0
-ToggleButton.ZIndex = 100
-ToggleButton.Font = Enum.Font.GothamBold
-ToggleButton.Parent = ScreenGui
+-- Lock Button
+local LockButton = Instance.new("TextButton")
+LockButton.Name = "CamLockBtn"
+LockButton.Size = UDim2.new(0, 100, 0, 50)
+LockButton.Position = UDim2.new(0.85, 0, 0.85, 0)
+LockButton.BackgroundColor3 = Color3.fromRGB(40, 40, 40)
+LockButton.BackgroundTransparency = 0.3
+LockButton.TextColor3 = Color3.fromRGB(255, 255, 255)
+LockButton.Text = "🔒 OFF"
+LockButton.TextSize = 16
+LockButton.BorderSizePixel = 0
+LockButton.ZIndex = 100
+LockButton.Font = Enum.Font.GothamBold
+LockButton.Parent = ScreenGui
 
 -- Make button draggable
 local dragging = false
-local dragInput, dragStart, startPos
+local dragStart, startPos
 
-ToggleButton.InputBegan:Connect(function(input)
-    if input.UserInputType == Enum.UserInputType.Touch then
+LockButton.InputBegan:Connect(function(input)
+    if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
         dragging = true
         dragStart = input.Position
-        startPos = ToggleButton.Position
-        
+        startPos = LockButton.Position
         input.Changed:Connect(function()
             if input.UserInputState == Enum.UserInputState.End then
                 dragging = false
@@ -64,16 +68,10 @@ ToggleButton.InputBegan:Connect(function(input)
     end
 end)
 
-ToggleButton.InputChanged:Connect(function(input)
-    if input.UserInputType == Enum.UserInputType.Touch then
-        dragInput = input
-    end
-end)
-
 UserInputService.InputChanged:Connect(function(input)
-    if dragging and input == dragInput then
+    if dragging and (input.UserInputType == Enum.UserInputType.MouseMovement or input.UserInputType == Enum.UserInputType.Touch) then
         local delta = input.Position - dragStart
-        ToggleButton.Position = UDim2.new(
+        LockButton.Position = UDim2.new(
             startPos.X.Scale,
             startPos.X.Offset + delta.X,
             startPos.Y.Scale,
@@ -82,111 +80,47 @@ UserInputService.InputChanged:Connect(function(input)
     end
 end)
 
--- Function to check if we should track a player
-function shouldTrackPlayer(player)
-    if player == LocalPlayer then
-        return false
+-- Team check for executors (works with most games)
+function isEnemy(player)
+    if player == LocalPlayer then return false end
+    
+    -- Check if game uses Roblox teams
+    local myTeam = LocalPlayer.Team
+    local theirTeam = player.Team
+    
+    if myTeam and theirTeam then
+        return myTeam ~= theirTeam
     end
     
-    if TRACK_ALL_PLAYERS then
-        return true
-    end
-    
-    -- Check if both players are on teams
-    local localTeam = LocalPlayer.Team
-    local playerTeam = player.Team
-    
-    -- If no teams are set up, track everyone (or adjust as needed)
-    if not localTeam or not playerTeam then
-        return true
-    end
-    
-    -- Only track if on opposite teams
-    return localTeam ~= playerTeam
+    -- For games without teams, show everyone
+    return true
 end
 
--- Toggle Camera Lock function
-ToggleButton.Activated:Connect(function()
-    if CAMERA_LOCK_ENABLED then
-        -- Turn off lock
-        CAMERA_LOCK_ENABLED = false
-        LOCKED_PLAYER = nil
-        LOCKED_CHARACTER = nil
-        ToggleButton.Text = "🔒\nLock Off"
-        ToggleButton.BackgroundColor3 = Color3.fromRGB(30, 30, 30)
-    else
-        -- Find closest VISIBLE enemy to lock onto
-        local closestPlayer = nil
-        local closestDistance = math.huge
-        
-        for _, player in pairs(Players:GetPlayers()) do
-            if shouldTrackPlayer(player) and player.Character then
-                local humanoid = player.Character:FindFirstChild("Humanoid")
-                local rootPart = player.Character:FindFirstChild("HumanoidRootPart")
-                
-                if humanoid and humanoid.Health > 0 and rootPart then
-                    local distance = (rootPart.Position - Camera.CFrame.Position).Magnitude
-                    
-                    -- Only lock if player is visible
-                    if distance < closestDistance and distance <= AUTO_LOCK_RANGE then
-                        -- Check if visible
-                        local visible = isVisible(rootPart.Position, player.Character)
-                        
-                        if visible then
-                            closestDistance = distance
-                            closestPlayer = player
-                        end
-                    end
-                end
-            end
-        end
-        
-        if closestPlayer then
-            CAMERA_LOCK_ENABLED = true
-            LOCKED_PLAYER = closestPlayer
-            LOCKED_CHARACTER = closestPlayer.Character
-            ToggleButton.Text = "🔓\nLock On"
-            ToggleButton.BackgroundColor3 = Color3.fromRGB(50, 200, 50)
-        else
-            -- No visible enemy found
-            ToggleButton.Text = "❌\nNo Target"
-            ToggleButton.BackgroundColor3 = Color3.fromRGB(200, 50, 50)
-            
-            -- Reset after 1 second
-            task.wait(1)
-            if not CAMERA_LOCK_ENABLED then
-                ToggleButton.Text = "🔒\nLock Off"
-                ToggleButton.BackgroundColor3 = Color3.fromRGB(30, 30, 30)
-            end
-        end
-    end
-end)
-
--- ESP Data Storage
-local ESPData = {}
-
--- Function to check if player is visible
-function isVisible(targetPosition, character)
-    local raycastParams = RaycastParams.new()
-    raycastParams.FilterType = Enum.RaycastFilterType.Blacklist
-    raycastParams.FilterDescendantsInstances = {character, LocalPlayer.Character}
-    raycastParams.IgnoreWater = true
+-- Visibility check for executors
+function isVisible(targetPos, targetChar)
+    if not targetChar or not LocalPlayer.Character then return false end
     
-    local direction = (targetPosition - Camera.CFrame.Position).Unit
-    local distance = (targetPosition - Camera.CFrame.Position).Magnitude
-    local raycastResult = Workspace:Raycast(Camera.CFrame.Position, direction * distance, raycastParams)
+    local params = RaycastParams.new()
+    params.FilterType = Enum.RaycastFilterType.Blacklist
+    params.FilterDescendantsInstances = {targetChar, LocalPlayer.Character}
+    params.IgnoreWater = true
     
-    return raycastResult == nil
+    local origin = Camera.CFrame.Position
+    local direction = (targetPos - origin).Unit
+    local distance = (targetPos - origin).Magnitude
+    
+    local result = Workspace:Raycast(origin, direction * distance, params)
+    return result == nil
 end
 
--- Function to create ESP for a player
+-- Create ESP for a player
 function createESP(player)
-    -- Only create ESP if we should track this player
-    if not shouldTrackPlayer(player) then
+    if ESPData[player] then return end
+    
+    -- Only create ESP for enemies (or everyone if SHOW_TEAMMATES is true)
+    if not isEnemy(player) and not SHOW_TEAMMATES then
         return
     end
-    
-    if ESPData[player] then return end
     
     ESPData[player] = {
         Box = nil,
@@ -198,44 +132,29 @@ function createESP(player)
     
     -- Create Highlight
     local highlight = Instance.new("Highlight")
-    highlight.Name = "ESPHighlight"
-    
-    -- Set color based on team
-    if player.Team and LocalPlayer.Team and player.Team == LocalPlayer.Team then
-        highlight.FillColor = Color3.fromRGB(50, 150, 255) -- Blue for teammates
-    else
-        highlight.FillColor = Color3.fromRGB(255, 50, 50) -- Red for enemies
-    end
-    
-    highlight.FillTransparency = 0.7
+    highlight.Name = "ESP_Highlight"
+    highlight.FillColor = Color3.fromRGB(255, 0, 0)
     highlight.OutlineColor = Color3.fromRGB(255, 255, 255)
+    highlight.FillTransparency = 0.7
     highlight.OutlineTransparency = 0
-    highlight.Enabled = false
     highlight.DepthMode = Enum.HighlightDepthMode.AlwaysOnTop
+    highlight.Enabled = false
     highlight.Parent = nil
     
     -- Create ESP Box
     local box = Instance.new("BillboardGui")
-    box.Name = "ESPBox"
-    box.Size = UDim2.new(4, 0, 6, 0)
+    box.Name = "ESP_Box"
+    box.Size = UDim2.new(5, 0, 8, 0)
     box.AlwaysOnTop = true
     box.StudsOffset = Vector3.new(0, 3, 0)
     box.MaxDistance = MAX_DISTANCE
     box.Adornee = nil
     box.Enabled = false
-    box.Parent = nil
     
     local boxFrame = Instance.new("Frame")
     boxFrame.Name = "BoxFrame"
     boxFrame.Size = UDim2.new(1, 0, 1, 0)
-    
-    -- Set color based on team
-    if player.Team and LocalPlayer.Team and player.Team == LocalPlayer.Team then
-        boxFrame.BackgroundColor3 = Color3.fromRGB(50, 150, 255) -- Blue for teammates
-    else
-        boxFrame.BackgroundColor3 = Color3.fromRGB(255, 50, 50) -- Red for enemies
-    end
-    
+    boxFrame.BackgroundColor3 = Color3.fromRGB(255, 0, 0)
     boxFrame.BackgroundTransparency = 0.7
     boxFrame.BorderSizePixel = 2
     boxFrame.BorderColor3 = Color3.fromRGB(255, 255, 255)
@@ -243,21 +162,20 @@ function createESP(player)
     
     -- Create Info Label
     local label = Instance.new("BillboardGui")
-    label.Name = "ESPInfo"
+    label.Name = "ESP_Label"
     label.Size = UDim2.new(0, 200, 0, 50)
     label.AlwaysOnTop = true
     label.StudsOffset = Vector3.new(0, 5, 0)
     label.MaxDistance = MAX_DISTANCE
     label.Adornee = nil
     label.Enabled = false
-    label.Parent = nil
     
     local textLabel = Instance.new("TextLabel")
-    textLabel.Name = "InfoText"
+    textLabel.Name = "Info"
     textLabel.Size = UDim2.new(1, 0, 1, 0)
     textLabel.BackgroundTransparency = 1
     textLabel.TextColor3 = Color3.fromRGB(255, 255, 255)
-    textLabel.TextStrokeTransparency = 0.5
+    textLabel.TextStrokeTransparency = 0
     textLabel.TextSize = 14
     textLabel.Font = Enum.Font.GothamBold
     textLabel.Text = ""
@@ -266,7 +184,7 @@ function createESP(player)
     
     -- Create Tracer
     local tracer = Instance.new("Frame")
-    tracer.Name = "ESPTracer"
+    tracer.Name = "ESP_Tracer"
     tracer.Size = UDim2.new(0, 2, 0, 2)
     tracer.BackgroundColor3 = Color3.fromRGB(255, 255, 255)
     tracer.BorderSizePixel = 0
@@ -284,260 +202,300 @@ function createESP(player)
         attachESP(player, player.Character)
     end
     
-    player.CharacterAdded:Connect(function(character)
-        ESPData[player].Character = character
-        attachESP(player, character)
+    -- Character added
+    player.CharacterAdded:Connect(function(char)
+        ESPData[player].Character = char
+        task.wait(0.5) -- Wait for character to load
+        attachESP(player, char)
         
-        -- Update camera lock target if needed
         if player == LOCKED_PLAYER then
-            LOCKED_CHARACTER = character
+            LOCKED_CHARACTER = char
         end
     end)
     
+    -- Character removed
     player.CharacterRemoving:Connect(function()
         ESPData[player].Character = nil
-        clearESP(player)
+        if ESPData[player].Highlight then
+            ESPData[player].Highlight.Enabled = false
+        end
+        if ESPData[player].Box then
+            ESPData[player].Box.Enabled = false
+        end
+        if ESPData[player].Label then
+            ESPData[player].Label.Enabled = false
+        end
         
-        -- Clear camera lock if target dies
         if player == LOCKED_PLAYER then
-            CAMERA_LOCK_ENABLED = false
+            CAMERA_LOCK = false
             LOCKED_PLAYER = nil
             LOCKED_CHARACTER = nil
-            ToggleButton.Text = "🔒\nLock Off"
-            ToggleButton.BackgroundColor3 = Color3.fromRGB(30, 30, 30)
-        end
-    end)
-    
-    -- Track team changes
-    player:GetPropertyChangedSignal("Team"):Connect(function()
-        -- If team changes and we shouldn't track anymore, clear ESP
-        if not shouldTrackPlayer(player) then
-            clearESP(player)
-            
-            -- Also clear camera lock if locked on this player
-            if player == LOCKED_PLAYER then
-                CAMERA_LOCK_ENABLED = false
-                LOCKED_PLAYER = nil
-                LOCKED_CHARACTER = nil
-                ToggleButton.Text = "🔒\nLock Off"
-                ToggleButton.BackgroundColor3 = Color3.fromRGB(30, 30, 30)
-            end
-        else
-            -- If we should track and ESP doesn't exist, create it
-            if not ESPData[player] and player.Character then
-                -- Recreate ESP for this player
-                createESP(player)
-            end
+            LockButton.Text = "🔒 OFF"
+            LockButton.BackgroundColor3 = Color3.fromRGB(40, 40, 40)
         end
     end)
 end
 
-function attachESP(player, character)
-    local humanoid = character:WaitForChild("Humanoid", 5)
-    local rootPart = character:FindFirstChild("HumanoidRootPart") or character:FindFirstChild("Head")
+-- Attach ESP to character
+function attachESP(player, char)
+    if not char then return end
     
-    if humanoid and rootPart then
-        ESPData[player].Highlight.Adornee = character
-        ESPData[player].Highlight.Parent = character
-        ESPData[player].Highlight.Enabled = true
+    local humanoid = char:WaitForChild("Humanoid", 2)
+    local rootPart = char:FindFirstChild("HumanoidRootPart") or char:FindFirstChild("Head")
+    
+    if humanoid and rootPart and ESPData[player] then
+        local data = ESPData[player]
         
-        ESPData[player].Box.Adornee = rootPart
-        ESPData[player].Box.Parent = rootPart
-        ESPData[player].Box.Enabled = true
+        if data.Highlight then
+            data.Highlight.Adornee = char
+            data.Highlight.Parent = char
+        end
         
-        ESPData[player].Label.Adornee = rootPart
-        ESPData[player].Label.Parent = rootPart
-        ESPData[player].Label.Enabled = true
+        if data.Box then
+            data.Box.Adornee = rootPart
+            data.Box.Parent = rootPart
+        end
+        
+        if data.Label then
+            data.Label.Adornee = rootPart
+            data.Label.Parent = rootPart
+        end
     end
 end
 
-function clearESP(player)
+-- Clean up ESP
+function removeESP(player)
     if ESPData[player] then
-        if ESPData[player].Highlight then
-            ESPData[player].Highlight:Destroy()
+        local data = ESPData[player]
+        
+        if data.Highlight then
+            data.Highlight:Destroy()
         end
-        if ESPData[player].Box then
-            ESPData[player].Box:Destroy()
+        if data.Box then
+            data.Box:Destroy()
         end
-        if ESPData[player].Label then
-            ESPData[player].Label:Destroy()
+        if data.Label then
+            data.Label:Destroy()
         end
-        if ESPData[player].Tracer then
-            ESPData[player].Tracer:Destroy()
+        if data.Tracer then
+            data.Tracer:Destroy()
         end
+        
         ESPData[player] = nil
     end
 end
 
+-- Update ESP
 function updateESP()
     for player, data in pairs(ESPData) do
         if player and data.Character and data.Character.Parent then
-            local humanoid = data.Character:FindFirstChild("Humanoid")
-            local rootPart = data.Character:FindFirstChild("HumanoidRootPart") or data.Character:FindFirstChild("Head")
+            local char = data.Character
+            local humanoid = char:FindFirstChild("Humanoid")
+            local rootPart = char:FindFirstChild("HumanoidRootPart") or char:FindFirstChild("Head")
             
-            if humanoid and rootPart and humanoid.Health > 0 then
-                -- Calculate distance
+            if humanoid and humanoid.Health > 0 and rootPart then
                 local distance = (rootPart.Position - Camera.CFrame.Position).Magnitude
                 
                 if distance <= MAX_DISTANCE then
-                    -- Check visibility
-                    local visible = isVisible(rootPart.Position, data.Character)
+                    local visible = isVisible(rootPart.Position, char)
+                    local isEnemyPlayer = isEnemy(player)
                     
-                    -- Update colors based on team and visibility
+                    -- Set colors
                     local color
-                    if player.Team and LocalPlayer.Team and player.Team == LocalPlayer.Team then
-                        color = Color3.fromRGB(50, 150, 255) -- Blue for teammates
+                    if isEnemyPlayer then
+                        color = visible and ESPColorVisible or ESPColor
                     else
-                        -- Red for enemies, green if visible
-                        color = visible and Color3.fromRGB(50, 255, 50) or Color3.fromRGB(255, 50, 50)
+                        color = TeamColor
                     end
                     
-                    -- Update box color
-                    if data.Box and data.Box:FindFirstChild("BoxFrame") then
+                    -- Update box
+                    if data.Box and data.Box.Enabled then
                         data.Box.BoxFrame.BackgroundColor3 = color
-                        data.Box.BoxFrame.BorderColor3 = Color3.fromRGB(255, 255, 255)
                     end
                     
-                    -- Update highlight color
+                    -- Update highlight
                     if data.Highlight then
                         data.Highlight.FillColor = color
                         data.Highlight.Enabled = true
                     end
                     
-                    -- Update label text
-                    if data.Label and data.Label:FindFirstChild("InfoText") then
+                    -- Update label
+                    if data.Label then
                         local teamText = ""
                         if player.Team then
-                            teamText = player.Team.Name .. " | "
+                            teamText = "[" .. player.Team.Name .. "] "
                         end
                         
-                        local info = string.format("[%s]\n%sDistance: %.1f studs\nHP: %.0f/%.0f\n%s",
-                            player.Name,
+                        local info = string.format("%s%s\n%.0f studs\nHP: %d/%d\n%s",
                             teamText,
+                            player.Name,
                             distance,
-                            humanoid.Health,
-                            humanoid.MaxHealth,
-                            visible and "Visible" or "Behind Wall"
+                            math.floor(humanoid.Health),
+                            math.floor(humanoid.MaxHealth),
+                            visible and "VISIBLE" or "BEHIND WALL"
                         )
-                        data.Label.InfoText.Text = info
-                        data.Label.InfoText.TextColor3 = color
+                        data.Label.Info.Text = info
+                        data.Label.Info.TextColor3 = color
+                        data.Label.Enabled = true
+                    end
+                    
+                    -- Update box
+                    if data.Box then
+                        data.Box.Enabled = true
                     end
                     
                     -- Update tracer
                     if data.Tracer then
-                        local screenPoint, onScreen = Camera:WorldToViewportPoint(rootPart.Position)
+                        local screenPos, onScreen = Camera:WorldToViewportPoint(rootPart.Position)
                         if onScreen then
-                            data.Tracer.Visible = visible
-                            data.Tracer.Position = UDim2.new(0, screenPoint.X, 0, screenPoint.Y)
+                            data.Tracer.Position = UDim2.new(0, screenPos.X, 0, screenPos.Y)
                             data.Tracer.BackgroundColor3 = color
+                            data.Tracer.Visible = visible
                         else
                             data.Tracer.Visible = false
                         end
                     end
-                    
-                    -- Enable ESP
-                    if data.Box then data.Box.Enabled = true end
-                    if data.Label then data.Label.Enabled = true end
                 else
-                    -- Disable ESP if too far
+                    -- Too far, hide ESP
+                    if data.Highlight then data.Highlight.Enabled = false end
                     if data.Box then data.Box.Enabled = false end
                     if data.Label then data.Label.Enabled = false end
                     if data.Tracer then data.Tracer.Visible = false end
-                    if data.Highlight then data.Highlight.Enabled = false end
                 end
             else
-                -- Disable ESP if dead
+                -- Dead, hide ESP
+                if data.Highlight then data.Highlight.Enabled = false end
                 if data.Box then data.Box.Enabled = false end
                 if data.Label then data.Label.Enabled = false end
                 if data.Tracer then data.Tracer.Visible = false end
-                if data.Highlight then data.Highlight.Enabled = false end
             end
         end
     end
 end
 
--- Camera Lock Update Function
+-- Camera lock functions
+LockButton.MouseButton1Click:Connect(function()
+    if CAMERA_LOCK then
+        -- Turn off
+        CAMERA_LOCK = false
+        LOCKED_PLAYER = nil
+        LOCKED_CHARACTER = nil
+        LockButton.Text = "🔒 OFF"
+        LockButton.BackgroundColor3 = Color3.fromRGB(40, 40, 40)
+    else
+        -- Find closest visible enemy
+        local closestPlayer = nil
+        local closestDist = LOCK_RANGE + 1
+        
+        for _, player in pairs(Players:GetPlayers()) do
+            if isEnemy(player) and player.Character then
+                local char = player.Character
+                local humanoid = char:FindFirstChild("Humanoid")
+                local rootPart = char:FindFirstChild("HumanoidRootPart") or char:FindFirstChild("Head")
+                
+                if humanoid and humanoid.Health > 0 and rootPart then
+                    local dist = (rootPart.Position - Camera.CFrame.Position).Magnitude
+                    
+                    if dist < closestDist and dist <= LOCK_RANGE then
+                        if isVisible(rootPart.Position, char) then
+                            closestDist = dist
+                            closestPlayer = player
+                        end
+                    end
+                end
+            end
+        end
+        
+        if closestPlayer then
+            CAMERA_LOCK = true
+            LOCKED_PLAYER = closestPlayer
+            LOCKED_CHARACTER = closestPlayer.Character
+            LockButton.Text = "🔓 LOCKED"
+            LockButton.BackgroundColor3 = Color3.fromRGB(0, 200, 0)
+        else
+            LockButton.Text = "❌ NO TARGET"
+            LockButton.BackgroundColor3 = Color3.fromRGB(200, 0, 0)
+            
+            task.wait(1)
+            if not CAMERA_LOCK then
+                LockButton.Text = "🔒 OFF"
+                LockButton.BackgroundColor3 = Color3.fromRGB(40, 40, 40)
+            end
+        end
+    end
+end)
+
+-- Camera lock update
 function updateCameraLock()
-    if CAMERA_LOCK_ENABLED and LOCKED_PLAYER and LOCKED_CHARACTER then
-        local humanoid = LOCKED_CHARACTER:FindFirstChild("Humanoid")
-        local torso = LOCKED_CHARACTER:FindFirstChild("HumanoidRootPart") or LOCKED_CHARACTER:FindFirstChild("UpperTorso")
+    if CAMERA_LOCK and LOCKED_PLAYER and LOCKED_CHARACTER and isEnemy(LOCKED_PLAYER) then
+        local char = LOCKED_CHARACTER
+        local humanoid = char:FindFirstChild("Humanoid")
+        local torso = char:FindFirstChild("HumanoidRootPart") or 
+                      char:FindFirstChild("UpperTorso") or 
+                      char:FindFirstChild("Torso")
         
         if humanoid and humanoid.Health > 0 and torso then
-            -- Smooth camera movement (stays locked even if behind walls)
-            local currentCF = Camera.CFrame
-            local targetPosition = torso.Position + Vector3.new(0, 2, 0)
-            local targetCF = CFrame.new(Camera.CFrame.Position, targetPosition)
+            -- Get camera's current position and look at the target's torso
+            local camPos = Camera.CFrame.Position
+            local targetPos = torso.Position + Vector3.new(0, 1.5, 0)
             
-            Camera.CFrame = currentCF:Lerp(targetCF, SMOOTHNESS)
+            -- Create a CFrame that looks from camera position to target
+            local lookCFrame = CFrame.new(camPos, targetPos)
+            
+            -- Apply smooth camera movement
+            Camera.CFrame = Camera.CFrame:Lerp(lookCFrame, SMOOTHNESS)
         else
-            -- Target died or missing
-            CAMERA_LOCK_ENABLED = false
+            -- Target died or invalid
+            CAMERA_LOCK = false
             LOCKED_PLAYER = nil
             LOCKED_CHARACTER = nil
-            ToggleButton.Text = "🔒\nLock Off"
-            ToggleButton.BackgroundColor3 = Color3.fromRGB(30, 30, 30)
+            LockButton.Text = "🔒 OFF"
+            LockButton.BackgroundColor3 = Color3.fromRGB(40, 40, 40)
         end
     end
 end
 
--- Initialize ESP for existing players
+-- Initialize ESP for all players
 function initializeESP()
     for _, player in pairs(Players:GetPlayers()) do
-        if shouldTrackPlayer(player) then
+        if player ~= LocalPlayer then
             createESP(player)
         end
     end
 end
 
--- Player Added/Removed Events
+-- Event connections
 Players.PlayerAdded:Connect(function(player)
-    if shouldTrackPlayer(player) then
+    if player ~= LocalPlayer then
         createESP(player)
     end
 end)
 
 Players.PlayerRemoving:Connect(function(player)
-    clearESP(player)
+    removeESP(player)
     if player == LOCKED_PLAYER then
-        CAMERA_LOCK_ENABLED = false
+        CAMERA_LOCK = false
         LOCKED_PLAYER = nil
         LOCKED_CHARACTER = nil
-        ToggleButton.Text = "🔒\nLock Off"
-        ToggleButton.BackgroundColor3 = Color3.fromRGB(30, 30, 30)
+        LockButton.Text = "🔒 OFF"
+        LockButton.BackgroundColor3 = Color3.fromRGB(40, 40, 40)
     end
 end)
 
--- Local player team change event
+-- Team change handling
 LocalPlayer:GetPropertyChangedSignal("Team"):Connect(function()
-    -- Reinitialize ESP for all players based on new team
+    -- Reinitialize ESP when local player changes team
     for player, _ in pairs(ESPData) do
-        clearESP(player)
+        removeESP(player)
     end
-    
-    -- Wait a bit for team changes to propagate
-    task.wait(0.1)
-    
-    -- Recreate ESP for players we should track
-    for _, player in pairs(Players:GetPlayers()) do
-        if shouldTrackPlayer(player) then
-            createESP(player)
-        end
-    end
-    
-    -- Clear camera lock if locked on a player who is now on our team
-    if LOCKED_PLAYER and not shouldTrackPlayer(LOCKED_PLAYER) then
-        CAMERA_LOCK_ENABLED = false
-        LOCKED_PLAYER = nil
-        LOCKED_CHARACTER = nil
-        ToggleButton.Text = "🔒\nLock Off"
-        ToggleButton.BackgroundColor3 = Color3.fromRGB(30, 30, 30)
-    end
+    task.wait(0.5)
+    initializeESP()
 end)
 
 -- Main loop
 local lastUpdate = 0
-RunService.RenderStepped:Connect(function(deltaTime)
-    lastUpdate = lastUpdate + deltaTime
+RunService.RenderStepped:Connect(function(delta)
+    lastUpdate = lastUpdate + delta
     
     if lastUpdate >= REFRESH_RATE then
         if ESP_ENABLED then
@@ -549,23 +507,33 @@ RunService.RenderStepped:Connect(function(deltaTime)
     end
 end)
 
--- Initialize
-ScreenGui.Parent = LocalPlayer:WaitForChild("PlayerGui")
+-- Initialize everything
+task.wait(1) -- Wait for game to load
 initializeESP()
 
-print("Mobile ESP with Camera Lock loaded successfully!")
-print("Features:")
-print("- ESP with distance, HP, and visibility")
-print("- Team recognition (only shows enemies)")
-print("- Avatar highlighting with team colors")
-print("- Auto-retrack respawned/joined players")
-print("- Mobile camera lock toggle (movable button)")
-print("- Camera lock only on visible enemies, stays locked until target dies or unlock")
+print("✅ Executor ESP & Camlock loaded!")
+print("📌 Features:")
+print("   - ESP showing distance, HP, visibility")
+print("   - Team recognition (enemies only by default)")
+print("   - Avatar highlighting")
+print("   - Camera lock with toggle button")
+print("   - Button is movable")
+print("   - ESP always on")
+print("\n🔧 Settings:")
+print("   - SHOW_TEAMMATES = " .. tostring(SHOW_TEAMMATES))
+print("   - MAX_DISTANCE = " .. MAX_DISTANCE)
+print("   - LOCK_RANGE = " .. LOCK_RANGE)
 
--- Return cleanup function
-return function()
+-- Cleanup function for executors
+local function cleanup()
     for player, _ in pairs(ESPData) do
-        clearESP(player)
+        removeESP(player)
     end
-    ScreenGui:Destroy()
+    if ScreenGui then
+        ScreenGui:Destroy()
+    end
+    print("🧹 ESP cleaned up")
 end
+
+-- Return cleanup function for executors that support it
+return cleanup
